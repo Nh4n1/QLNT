@@ -1,0 +1,87 @@
+extends ../../layouts/default.pug
+include ../../mixins/alert.pug
+block main
+  .container-fluid.my-5
+    +alert-success(3000)
+    +alert-error(3000)
+    
+    .header-section.mb-4
+      .d-flex.justify-content-between.align-items-center
+        h1.page-title Danh sách phòng trọ
+        .action-buttons
+          button.btn.btn-success.me-2(type='button', id='btnAddRoom')
+            i.fas.fa-plus.me-1
+            | Thêm phòng
+    
+    .rooms-grid
+      each room in rooms
+        .room-card
+          .room-header
+            h5.room-id= room.TenPhong
+          
+          .room-badges
+            if room.TrangThaiPhong === 'DaThue'
+              span.badge.badge-success Trả
+            else
+              span.badge.badge-info Trống
+            span.badge.badge-secondary Xem
+            span.badge.badge-primary Sửa
+          
+          .room-customer
+            if room.TenKhachHang
+              p
+                i.fas.fa-user.me-2
+                =  room.TenKhachHang
+            else
+              p
+                i.fas.fa-user.me-2
+                em  (Chưa có khách)
+          
+          .room-price
+            p
+              strong.text-danger= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.GiaThueHienTai)
+          
+          .room-actions
+            button.btn.btn-sm.btn-info(type='button')
+              i.fas.fa-pencil-alt.me-1
+              | Chỉnh sửa
+            if(room.TrangThaiPhong === 'DaThue')
+              button.btn.btn-sm.btn-warning(type='button')
+                i.fas.fa-undo.me-1
+                | Trả phòng
+            else
+              button.btn.btn-sm.btn-success(type='button')
+                i.fas.fa-check.me-1
+                | Thuê phòng        
+            button.btn.btn-sm.btn-danger(type='button', disabled=room.TrangThaiPhong === 'DaThue')
+              i.fas.fa-trash.me-1
+              | Xóa
+
+  // Modal Form Thêm phòng trọ mới
+  .modal.fade#roomModal(tabindex='-1', role='dialog', aria-labelledby='roomModalLabel', aria-hidden='true')
+    .modal-dialog(role='document')
+      .modal-content
+        .modal-header
+          h5.modal-title#roomModalLabel Thêm phòng trọ mới
+          button.close(type='button', data-dismiss='modal', aria-label='Close')
+            span(aria-hidden='true') ×
+        .modal-body
+          form#roomForm(action='/rooms', method='POST')
+            .form-group
+              label(for='maNha') Nhà trọ
+              select#maNha.form-control(name='MaNha', required)
+                option(value='') -- Chọn nhà trọ --
+                each house in rentHouses
+                  option(value=house.MaNha)= house.TenNha
+            .form-group
+              label(for='tenPhong') Tên phòng
+              input#tenPhong.form-control(type='text', name='TenPhong', placeholder='Ví dụ: Phòng 101 (Tầng 1)', required)
+            .form-group
+              label(for='giaThue') Giá thuê (đ)
+              input#giaThue.form-control(type='number', name='GiaThueHienTai', placeholder='1500000', required)
+            .form-group
+              label(for='soNguoi') Số người tối đa
+              input#soNguoi.form-control(type='number', name='SoNguoiToiDa', value='1', required)
+        .modal-footer
+          button.btn.btn-secondary(type='button', data-dismiss='modal') Hủy
+          button#btnSaveRoom.btn.btn-primary(type='button') Lưu lại 

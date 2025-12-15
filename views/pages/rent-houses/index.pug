@@ -1,0 +1,58 @@
+extends ../../layouts/default.pug
+include ../../mixins/alert.pug
+block main 
+  .container.my-5
+    .message.info
+        span= messages.success
+    +alert-success(3000)
+    +alert-error(3000)
+    .header-section.mb-4
+      h1.page-title Danh sách nhà trọ
+    .house-add 
+      a.btn.btn-primary(class='rent-house-add-btn') Tạo mới nhà trọ
+    .houses-grid
+      each house in houses
+        .house-card
+          .house-header
+            h3.house-name= house.TenNha
+          
+          .house-address
+            p= house.DiaChi
+          
+          .house-stats.my-3
+            .stat-row
+              span.stat-item
+                strong Số phòng:
+                span.stat-value= house.totalRooms
+              span.stat-item
+                strong Số phòng trống:
+                span.stat-value= house.availableRooms
+              span.stat-item
+                strong Số phòng đã thuê:
+                span.stat-value= house.rentedRooms
+          
+          .house-footer
+            .footer-content
+              p.revenue-text Doanh thu tháng này: 
+                strong 0 đ
+            button.btn-details Chi tiết
+
+  // Modal Form Tạo mới nhà trọ
+  .modal.fade#rentHouseModal(tabindex='-1', role='dialog', aria-labelledby='rentHouseModalLabel', aria-hidden='true')
+    .modal-dialog(role='document')
+      .modal-content
+        .modal-header
+          h5.modal-title#rentHouseModalLabel Thông tin nhà trọ
+          button.close(type='button', data-dismiss='modal', aria-label='Close')
+            span(aria-hidden='true') ×
+        .modal-body
+          form#rentHouseForm(action='/rent-houses', method='POST')
+            .form-group
+              label(for='tenNha') Tên nhà trọ
+              input#tenNha.form-control(type='text', name='TenNha', placeholder='Nhập tên nhà trọ', required)
+            .form-group
+              label(for='diaChi') Địa chỉ
+              input#diaChi.form-control(type='text', name='DiaChi', placeholder='Nhập địa chỉ', required)
+        .modal-footer
+          button.btn.btn-secondary(type='button', data-dismiss='modal') Hủy
+          button#btnSave.btn.btn-primary(type='button') Lưu lại
