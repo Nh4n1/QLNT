@@ -1,7 +1,6 @@
 
 console.log("Script loaded successfully");
 
-// Handle "Tạo mới" button click
 const rentHouseAddBtn = document.querySelector(".rent-house-add-btn");
 if (rentHouseAddBtn) {
     rentHouseAddBtn.addEventListener("click", () => {
@@ -21,7 +20,6 @@ if (btnSave) {
             return;
         }
 
-        // Submit form tới /rent-houses với method POST
         document.getElementById("rentHouseForm").submit();
     });
 }
@@ -40,7 +38,6 @@ if (alert) {
     }, dataTime);
 }
 
-// Handle "Thêm phòng" button click on Rooms page
 const btnAddRoom = document.getElementById("btnAddRoom");
 if (btnAddRoom) {
     btnAddRoom.addEventListener("click", () => {
@@ -49,7 +46,6 @@ if (btnAddRoom) {
     });
 }
 
-// Handle Save Room button click
 const btnSaveRoom = document.getElementById("btnSaveRoom");
 if (btnSaveRoom) {
     btnSaveRoom.addEventListener("click", () => {
@@ -62,17 +58,14 @@ if (btnSaveRoom) {
             return;
         }
         console.log("Submitting room form");
-        // Submit form
         document.getElementById("roomForm").submit();
     });
 }
 
-// Handle "Tạo mới hợp đồng" button click on Contracts page
 const btnNewContract = document.getElementById("btnNewContract");
 if (btnNewContract) {
     btnNewContract.addEventListener("click", () => {
         document.getElementById("contractForm").reset();
-        // Disable all service price inputs
         document.querySelectorAll(".service-price-field").forEach(input => {
             input.disabled = true;
         });
@@ -80,7 +73,6 @@ if (btnNewContract) {
     });
 }
 
-// Handle service checkbox - enable/disable price input
 const serviceCheckboxes = document.querySelectorAll(".service-checkbox");
 serviceCheckboxes.forEach(checkbox => {
     checkbox.addEventListener("change", () => {
@@ -96,7 +88,6 @@ serviceCheckboxes.forEach(checkbox => {
     });
 });
 
-// Handle Save Contract button click
 const btnSaveContract = document.getElementById("btnSaveContract");
 if (btnSaveContract) {
     btnSaveContract.addEventListener("click", () => {
@@ -111,7 +102,6 @@ if (btnSaveContract) {
             return;
         }
 
-        // Collect selected services with prices
         const servicesData = [];
         document.querySelectorAll(".service-checkbox:checked").forEach(checkbox => {
             const serviceId = checkbox.getAttribute("data-service-id");
@@ -123,12 +113,9 @@ if (btnSaveContract) {
             });
         });
 
-        // Add services data to form as hidden inputs
         const form = document.getElementById("contractForm");
-        // Clear any existing service inputs
         form.querySelectorAll(".service-hidden-input").forEach(input => input.remove());
         
-        // Add service data
         servicesData.forEach((service, index) => {
             const input1 = document.createElement("input");
             input1.type = "hidden";
@@ -168,4 +155,20 @@ if (nguoiThueSelect) {
             document.getElementById("cccd").value = "";
         }
     });
+}
+const phongSelect = document.getElementById("maPhong");
+console.log(phongSelect);
+if(phongSelect){
+    phongSelect.addEventListener("change",()=>{
+        console.log("run");
+        const selectedOption = phongSelect.value;
+        const selected = phongSelect.options[phongSelect.selectedIndex];
+        const price = selected.getAttribute("data-gia");
+        if(selectedOption) {
+            document.getElementById('giaThueChot').value=price;
+        }else{
+            document.getElementById('giaThueChot').value='';
+        }
+       
+    })
 }

@@ -74,7 +74,7 @@ block main
                       select#maPhong.form-control(name='MaPhong', required)
                         option(value='') -- Chọn phòng trống --
                         each room in rooms 
-                            option(value=room.MaPhong)= room.TenPhong
+                            option(value=room.MaPhong data-gia= room.GiaThueHienTai)= room.TenPhong
                   .col-md-6
                     .form-group
                       label(for='ngayBatDau') Ngày bắt đầu

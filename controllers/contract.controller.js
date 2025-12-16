@@ -49,7 +49,7 @@ AND NOT EXISTS (
     AND (HD.NgayKetThuc IS NULL OR HD.NgayKetThuc >= CURRENT_DATE())
 );`);
   const [services] = await sequelize.query(`SELECT * FROM dich_vu WHERE deleted = 0;`)
-  console.log(services);
+  console.log(rooms)
 
   res.render('pages/contracts/index', { title: 'Contracts', contracts, rooms, users,services, messages: req.flash()});
 }
@@ -58,7 +58,7 @@ AND NOT EXISTS (
 // [POST] /contracts/create
 export const create = async (req, res) => {
     const data = req.body;
-    console.log("Payload nhận được:", data);
+   
 
     try {
         const timestamp = Date.now().toString().slice(-5);
