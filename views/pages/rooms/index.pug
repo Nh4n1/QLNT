@@ -20,12 +20,10 @@ block main
             h5.room-id= room.TenPhong
           
           .room-badges
-            if room.TrangThaiPhong === 'DaThue'
-              span.badge.badge-success Trả
+            if room.TrangThaiPhong === 'DaChoThue'
+              span.badge.badge-success Đã thuê
             else
               span.badge.badge-info Trống
-            span.badge.badge-secondary Xem
-            span.badge.badge-primary Sửa
           
           .room-customer
             if room.TenKhachHang
@@ -45,15 +43,15 @@ block main
             button.btn.btn-sm.btn-info(type='button')
               i.fas.fa-pencil-alt.me-1
               | Chỉnh sửa
-            if(room.TrangThaiPhong === 'DaThue')
+            if(room.TrangThaiPhong === 'DaChoThue')
               button.btn.btn-sm.btn-warning(type='button')
                 i.fas.fa-undo.me-1
                 | Trả phòng
             else
               button.btn.btn-sm.btn-success(type='button')
                 i.fas.fa-check.me-1
-                | Thuê phòng        
-            button.btn.btn-sm.btn-danger(type='button', disabled=room.TrangThaiPhong === 'DaThue')
+                | Thuê phòng
+            button.btn.btn-sm.btn-danger(type='button', disabled=room.TrangThaiPhong === 'DaChoThue')
               i.fas.fa-trash.me-1
               | Xóa
 

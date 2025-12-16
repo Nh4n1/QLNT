@@ -4,4 +4,5 @@ const router = express.Router();
 
 router.get('/', controller.index);
 
+
 export const userRouter = router;

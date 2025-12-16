@@ -5,5 +5,5 @@ export const index = async (req, res) => {
         raw: true
     });
     console.log(users);
-    res.send(users);
+    res.send("ok");
 }

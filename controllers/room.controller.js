@@ -29,7 +29,7 @@ export const index = async (req, res) => {
        { deleted: false, raw: true }
         
     );
-    console.log(rentHouses);
+  
     res.render('pages/rooms/index', {
         rooms: roomList[0],
         rentHouses: rentHouses,

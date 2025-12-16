@@ -1,0 +1,148 @@
+extends ../../layouts/default.pug
+include ../../mixins/alert.pug
+block main 
+    .container.my-5
+      +alert-success(3000)
+      +alert-error(3000)
+
+      .header-section.mb-4
+        h1.page-title Danh sách hợp đồng
+
+      .filter-section.mb-4
+        .row
+          .col-md-6
+            .search-box
+              i.fas.fa-search
+              input.form-control(type='text', placeholder='Tìm kiếm tên/phòng', id='searchContract')
+          .col-md-3
+            select.form-control(id='filterStatus')
+              option(value='') Tất cả
+              option(value='ConHieuLuc') Đang hiệu lực
+              option(value='HetHan') Hết hạn
+              option(value='TemDung') Tạm dừng
+          .col-md-3
+            button.btn.btn-success.w-100(type='button', id='btnNewContract')
+              i.fas.fa-plus.me-2
+              | Tạo mới hợp đồng
+
+      .contracts-list
+        each contract in contracts
+          .contract-item
+            .contract-header
+              h5.contract-title= contract.TenPhong
+            .contract-body
+              .contract-info
+                p
+                  strong Người thuê:
+                  = ' ' + contract.TenNguoiThue
+                p
+                  strong Điện thoại:
+                  = ' ' + contract.SoDienThoai
+                p
+                  strong Ngày hết hạn:
+                  = ' ' + new Date(contract.NgayKetThuc).toLocaleDateString('vi-VN')
+              .contract-status
+                - const ngayHetHan = new Date(contract.NgayKetThuc)
+                - const hienTai = new Date()
+                - const soNgayConLai = Math.ceil((ngayHetHan - hienTai) / (1000 * 60 * 60 * 24))
+                - const trangThaiHienThi = soNgayConLai <= 0 ? 'Đã hết hạn' : soNgayConLai <= 30 ? 'Sắp hết hạn' : 'Còn hiệu lực'
+                - const badgeClass = soNgayConLai <= 0 ? 'badge-danger' : soNgayConLai <= 30 ? 'badge-warning' : 'badge-success'
+                span(class='badge ' + badgeClass)= trangThaiHienThi
+            .contract-footer
+              button.btn.btn-sm.btn-info(type='button')
+                i.fas.fa-eye.me-1
+                | Chi tiết
+
+    .modal.fade#contractModal(tabindex='-1', role='dialog', aria-labelledby='contractModalLabel', aria-hidden='true')
+      .modal-dialog.modal-lg(role='document')
+        .modal-content
+          .modal-header
+            h5.modal-title#contractModalLabel Tạo mới hợp đồng
+            button.close(type='button', data-dismiss='modal', aria-label='Close')
+              span(aria-hidden='true') ×
+          .modal-body
+            form#contractForm(action='/contracts/create', method='POST')
+              .form-section
+                h6.section-title
+                  i.fas.fa-building.me-2
+                  | THÔNG TIN PHÒNG VÀ HỢP ĐỒNG
+                
+                .row
+                  .col-md-6
+                    .form-group
+                      label(for='maPhong') Phòng
+                      select#maPhong.form-control(name='MaPhong', required)
+                        option(value='') -- Chọn phòng trống --
+                        each room in rooms 
+                            option(value=room.MaPhong)= room.TenPhong
+                  .col-md-6
+                    .form-group
+                      label(for='ngayBatDau') Ngày bắt đầu
+                      input#ngayBatDau.form-control(type='date', name='NgayBatDau', required)
+                
+                .row
+                  .col-md-6
+                    .form-group
+                      label(for='ngayKetThuc') Ngày kết thúc
+                      input#ngayKetThuc.form-control(type='date', name='NgayKetThuc', required)
+                  .col-md-6
+                    .form-group
+                      label(for='tienCoc') Tiền cọc (đ)
+                      input#tienCoc.form-control(type='number', name='TienCoc', placeholder='0', required)
+                
+                .row
+                  .col-md-6
+                    .form-group
+                      label(for='giaThueChotInput') Giá thuê chốt (đ)
+                      input#giaThueChot.form-control(type='number', name='GiaThueChot', placeholder='0', required)
+                  .col-md-6
+                    .form-group
+                      label(for='soNguoiO') Số người ở
+                      input#soNguoiO.form-control(type='number', name='SoNguoiO', placeholder='1', value='1', required)
+              
+              .form-section
+                h6.section-title
+                  i.fas.fa-user.me-2
+                  | THÔNG TIN NGƯỜI THUÊ
+                
+                .row
+                  .col-md-12
+                    .form-group
+                      label(for='nguoiThue') Người thuê
+                      select#nguoiThue.form-control(name='MaNguoiThue', required)
+                        option(value='') -- Chọn người thuê --
+                        each user in users
+                          option(value=user.MaNguoiThue data-sdt=user.SDT data-cccd=user.CCCD)= user.HoTen
+                
+                .row
+                  .col-md-6
+                    .form-group
+                      label(for='sdt') Số điện thoại
+                      input#sdt.form-control(type='text', name='SoDienThoai', placeholder='0xxxxxxxxx', required)
+                  .col-md-6
+                    .form-group
+                      label(for='cccd') CCCD/CMND
+                      input#cccd.form-control(type='text', name='CCCD', placeholder='xxxxxxxxxxxxxxx')
+
+              .form-section
+                h6.section-title
+                  i.fas.fa-tools.me-2
+                  | DỊCH VỤ THÁNG
+                
+                .services-list
+                  each service in services
+                    .service-item.d-flex.align-items-center.mb-3
+                      .form-check
+                        input.form-check-input.service-checkbox(type='checkbox', id='service_' + service.MaDichVu, data-service-id=service.MaDichVu)
+                        label.form-check-label(for='service_' + service.MaDichVu)
+                          strong.me-2= service.TenDichVu
+                          span.service-unit
+                            = service.DonViTinh
+                      .service-price-input
+                        input.form-control.service-price-field(type='number', placeholder=service.DonGiaHienTai, data-service-id=service.MaDichVu, disabled)
+                        span.service-unit-text
+                          = ' đ/' + service.DonViTinh
+
+          .modal-footer
+            button.btn.btn-secondary(type='button', data-dismiss='modal') Hủy
+            button#btnSaveContract.btn.btn-primary(type='button') Lưu lại
