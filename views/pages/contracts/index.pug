@@ -25,33 +25,49 @@ block main
               i.fas.fa-plus.me-2
               | Tạo mới hợp đồng
 
-      .contracts-list
-        each contract in contracts
-          .contract-item
-            .contract-header
-              h5.contract-title= contract.TenPhong
-            .contract-body
-              .contract-info
-                p
-                  strong Người thuê:
-                  = ' ' + contract.TenNguoiThue
-                p
-                  strong Điện thoại:
-                  = ' ' + contract.SoDienThoai
-                p
-                  strong Ngày hết hạn:
-                  = ' ' + new Date(contract.NgayKetThuc).toLocaleDateString('vi-VN')
-              .contract-status
-                - const ngayHetHan = new Date(contract.NgayKetThuc)
-                - const hienTai = new Date()
-                - const soNgayConLai = Math.ceil((ngayHetHan - hienTai) / (1000 * 60 * 60 * 24))
-                - const trangThaiHienThi = soNgayConLai <= 0 ? 'Đã hết hạn' : soNgayConLai <= 30 ? 'Sắp hết hạn' : 'Còn hiệu lực'
-                - const badgeClass = soNgayConLai <= 0 ? 'badge-danger' : soNgayConLai <= 30 ? 'badge-warning' : 'badge-success'
-                span(class='badge ' + badgeClass)= trangThaiHienThi
-            .contract-footer
-              button.btn.btn-sm.btn-info(type='button')
-                i.fas.fa-eye.me-1
-                | Chi tiết
+      .table-responsive
+        table.table.table-hover.contracts-table
+          thead
+            tr
+              th Phòng
+              th Khách thuê
+              th Điện thoại
+              th Ngày kết thúc
+              th Trạng thái
+              th
+          tbody
+            if contracts.length > 0
+              each contract in contracts
+                tr
+                  td
+                    .contract-room-name= contract.TenPhong
+                  td
+                    .contract-tenant-name= contract.TenNguoiThue
+                  td
+                    .contract-phone
+                      i.fas.fa-phone.me-2
+                      = contract.SoDienThoai
+                  td
+                    .contract-date= new Date(contract.NgayKetThuc).toLocaleDateString('vi-VN')
+                  td
+                    - const ngayHetHan = new Date(contract.NgayKetThuc)
+                    - const hienTai = new Date()
+                    - const soNgayConLai = Math.ceil((ngayHetHan - hienTai) / (1000 * 60 * 60 * 24))
+                    - const trangThaiHienThi = soNgayConLai <= 0 ? 'Đã hết hạn' : soNgayConLai <= 30 ? 'Sắp hết hạn' : 'Còn hiệu lực'
+                    - const badgeClass = soNgayConLai <= 0 ? 'badge-danger' : soNgayConLai <= 30 ? 'badge-warning' : 'badge-success'
+                    span(class='badge ' + badgeClass)= trangThaiHienThi
+                  td
+                    .contract-actions
+                      button.btn.btn-sm.btn-outline-primary(type='button', title='Chi tiết')
+                        i.fas.fa-eye
+                      button.btn.btn-sm.btn-outline-info(type='button', title='Sửa')
+                        i.fas.fa-edit
+            else
+              tr
+                td(colspan='6')
+                  .empty-state
+                    i.fas.fa-inbox
+                    p Không có hợp đồng nào
 
     .modal.fade#contractModal(tabindex='-1', role='dialog', aria-labelledby='contractModalLabel', aria-hidden='true')
       .modal-dialog.modal-xl(role='document')

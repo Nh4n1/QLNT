@@ -1,48 +1,56 @@
 extends ../../layouts/default.pug
 include ../../mixins/alert.pug
 block main 
-  .container.my-5
-    .message.info
-        span= messages.success
+  .container-fluid.my-5
     +alert-success(3000)
     +alert-error(3000)
+    
     .header-section.mb-4
-      h1.page-title Danh sách nhà trọ
-    .house-add 
-      a.btn.btn-primary(class='rent-house-add-btn') Tạo mới nhà trọ
+      .d-flex.justify-content-between.align-items-center
+        h1.page-title Danh sách nhà trọ
+        button.btn.btn-success.rent-house-add-btn(type='button')
+          i.fas.fa-plus.me-2
+          | Tạo mới nhà trọ
+    
     .houses-grid
-      each house in houses
-        .house-card
-          .house-header
-            h3.house-name= house.TenNha
-          
-          .house-address
-            p= house.DiaChi
-          
-          .house-stats.my-3
-            .stat-row
-              span.stat-item
-                strong Số phòng:
-                span.stat-value= house.totalRooms
-              span.stat-item
-                strong Số phòng trống:
-                span.stat-value= house.availableRooms
-              span.stat-item
-                strong Số phòng đã thuê:
-                span.stat-value= house.rentedRooms
-          
-          .house-footer
-            .footer-content
-              p.revenue-text Doanh thu tháng này: 
-                strong 0 đ
-            button.btn-details Chi tiết
+      if houses.length > 0
+        each house in houses
+          .house-card
+            .house-card-header
+              .house-card-title= house.TenNha
+              .house-card-address
+                i.fas.fa-map-marker-alt.me-2.mr-10
+                = house.DiaChi
+            
+            .house-card-stats
+              .stat-item
+                .stat-label Tổng phòng
+                .stat-number= house.totalRooms
+              .stat-item
+                .stat-label Phòng trống
+                .stat-number.available= house.availableRooms
+              .stat-item
+                .stat-label Đã thuê
+                .stat-number.rented= house.rentedRooms
+            
+            .house-card-footer
+              button.btn.btn-outline-primary.btn-sm(type='button')
+                i.fas.fa-eye.me-1
+                | Chi tiết
+              button.btn.btn-outline-danger.btn-sm(type='button')
+                i.fas.fa-edit.me-1
+                | Sửa
+      else
+        .empty-state
+          i.fas.fa-building
+          p Không có nhà trọ nào
 
   // Modal Form Tạo mới nhà trọ
   .modal.fade#rentHouseModal(tabindex='-1', role='dialog', aria-labelledby='rentHouseModalLabel', aria-hidden='true')
     .modal-dialog(role='document')
       .modal-content
         .modal-header
-          h5.modal-title#rentHouseModalLabel Thông tin nhà trọ
+          h5.modal-title#rentHouseModalLabel Tạo mới nhà trọ
           button.close(type='button', data-dismiss='modal', aria-label='Close')
             span(aria-hidden='true') ×
         .modal-body
