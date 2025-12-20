@@ -9,51 +9,71 @@ block main
       .d-flex.justify-content-between.align-items-center
         h1.page-title Danh sách phòng trọ
         .action-buttons
+          select.form-control.filter-status(id='filterStatus', style='max-width: 180px; margin-right: 10px;')
+            option(value='') -- Tất cả --
+            option(value='DaChoThue') Đã cho thuê
+            option(value='ConTrong') Còn trống
           button.btn.btn-success.me-2(type='button', id='btnAddRoom')
             i.fas.fa-plus.me-1
             | Thêm phòng
     
-    .rooms-grid
-      each room in rooms
-        .room-card
-          .room-header
-            h5.room-id= room.TenPhong
-          
-          .room-badges
-            if room.TrangThaiPhong === 'DaChoThue'
-              span.badge.badge-success Đã thuê
-            else
-              span.badge.badge-info Trống
-          
-          .room-customer
-            if room.TenKhachHang
-              p
-                i.fas.fa-user.me-2
-                =  room.TenKhachHang
-            else
-              p
-                i.fas.fa-user.me-2
-                em  (Chưa có khách)
-          
-          .room-price
-            p
-              strong.text-danger= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.GiaThueHienTai)
-          
-          .room-actions
-            button.btn.btn-sm.btn-info(type='button')
-              i.fas.fa-pencil-alt.me-1
-              | Chỉnh sửa
-            if(room.TrangThaiPhong === 'DaChoThue')
-              button.btn.btn-sm.btn-warning(type='button')
-                i.fas.fa-undo.me-1
-                | Trả phòng
-            else
-              button.btn.btn-sm.btn-success(type='button')
-                i.fas.fa-check.me-1
-                | Thuê phòng
-            button.btn.btn-sm.btn-danger(type='button', disabled=room.TrangThaiPhong === 'DaChoThue')
-              i.fas.fa-trash.me-1
-              | Xóa
+    .table-responsive
+      table.table.table-hover.rooms-table
+        thead
+          tr
+            th Tên phòng
+            th Giá thuê
+            th Tiền cọc
+            th Số lượng
+            th Ngày kết thúc
+            th Trạng thái
+            th
+        tbody
+          each room in rooms
+            tr
+              td
+                .room-name-col
+                  .room-name= room.TenPhong
+                  .room-customer-name
+                    if room.TenKhachHang
+                      = room.TenKhachHang
+                    else
+                      em (Chưa có khách)
+              td
+                .room-price= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.GiaHienThi)
+              td
+                .room-deposit= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.TienCoc || 0)
+              td
+                .room-quantity 1/3
+              td
+                .room-end-date= room.NgayKetThuc ? new Date(room.NgayKetThuc).toLocaleDateString('vi-VN') : 'N/A'
+              td
+                if room.TenKhachHang
+                  span.badge.badge-success Đã cho thuê
+                else
+                  span.badge.badge-info Còn trống
+              td
+                .dropdown
+                  button.btn.btn-sm.btn-link.dropdown-toggle(type='button', data-toggle='dropdown', aria-haspopup='true', aria-expanded='false', id='dropdownRoom_' + room.MaPhong)
+                    i.fas.fa-ellipsis-v
+                  .dropdown-menu(aria-labelledby='dropdownRoom_' + room.MaPhong)
+                    if room.TrangThaiPhong === 'DaChoThue'
+                      button.dropdown-item(type='button', data-action='end-contract', data-room-id=room.MaPhong)
+                        i.fas.fa-undo
+                        | Kết thúc hợp đồng
+                    else
+                      button.dropdown-item(type='button', data-action='delete-room', data-room-id=room.MaPhong)
+                        i.fas.fa-trash
+                        | Xóa phòng
+                    
+                    button.dropdown-item(type='button', data-action='view-details', data-room-id=room.MaPhong)
+                      i.fas.fa-info-circle
+                      | Chi tiết
+                    
+                    if room.TrangThaiPhong === 'DaChoThue'
+                      button.dropdown-item(type='button', data-action='create-invoice', data-room-id=room.MaPhong)
+                        i.fas.fa-file-invoice
+                        | Tạo hóa đơn
 
   // Modal Form Thêm phòng trọ mới
   .modal.fade#roomModal(tabindex='-1', role='dialog', aria-labelledby='roomModalLabel', aria-hidden='true')

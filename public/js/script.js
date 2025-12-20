@@ -172,3 +172,70 @@ if(phongSelect){
        
     })
 }
+
+// Initialize Bootstrap dropdowns and handle room table actions
+document.addEventListener('DOMContentLoaded', function() {
+    // Enable Bootstrap dropdowns
+    const dropdownElements = document.querySelectorAll('[data-bs-toggle="dropdown"]');
+    dropdownElements.forEach(element => {
+        new bootstrap.Dropdown(element);
+    });
+
+    // Handle room table dropdown actions
+    document.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const action = this.getAttribute('data-action');
+            const roomId = this.getAttribute('data-room-id');
+            
+            if (!action || !roomId) return;
+            
+            switch(action) {
+                case 'end-contract':
+                    if (confirm('Bạn có chắc chắn muốn kết thúc hợp đồng này không?')) {
+                        window.location.href = `/rooms/${roomId}/end-contract`;
+                    }
+                    break;
+                case 'delete-room':
+                    if (confirm('Bạn có chắc chắn muốn xóa phòng này không?')) {
+                        window.location.href = `/rooms/${roomId}/delete`;
+                    }
+                    break;
+                case 'view-details':
+                    window.location.href = `/rooms/${roomId}/details`;
+                    break;
+                case 'create-invoice':
+                    window.location.href = `/rooms/${roomId}/invoice`;
+                    break;
+            }
+        });
+    });
+
+    // Handle room list selection in contract form
+    const roomItems = document.querySelectorAll('.room-item');
+    const maPhongInput = document.getElementById('maPhong');
+    const giaThueChot = document.getElementById('giaThueChot');
+    const soNguoiO = document.getElementById('soNguoiO');
+
+    roomItems.forEach(item => {
+        item.addEventListener('click', function() {
+            // Remove selected class from all items
+            roomItems.forEach(r => r.classList.remove('selected'));
+            
+            // Add selected class to clicked item
+            this.classList.add('selected');
+            
+            // Get room data
+            const roomId = this.getAttribute('data-room-id');
+            const roomPrice = this.getAttribute('data-room-price');
+            const roomCapacity = this.getAttribute('data-room-capacity');
+            
+            // Set form values
+            maPhongInput.value = roomId;
+            giaThueChot.value = roomPrice;
+            soNguoiO.value = roomCapacity;
+        });
+    });
+});

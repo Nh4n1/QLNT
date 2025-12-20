@@ -22,7 +22,8 @@ export const index = async(req, res) => {
   const [rooms] = await sequelize.query(`SELECT 
     P.MaPhong, 
     P.TenPhong, 
-    P.GiaThueHienTai
+    P.GiaThueHienTai,
+    P.SoNguoiToiDa
 FROM PHONG_TRO P
 WHERE P.TrangThai = 'ConTrong'
 AND NOT EXISTS (
@@ -48,9 +49,8 @@ AND NOT EXISTS (
     AND HD.NgayBatDau <= CURRENT_DATE()
     AND (HD.NgayKetThuc IS NULL OR HD.NgayKetThuc >= CURRENT_DATE())
 );`);
+    console.log(rooms);
   const [services] = await sequelize.query(`SELECT * FROM dich_vu WHERE deleted = 0;`)
-  console.log(rooms)
-
   res.render('pages/contracts/index', { title: 'Contracts', contracts, rooms, users,services, messages: req.flash()});
 }
 
@@ -58,16 +58,14 @@ AND NOT EXISTS (
 // [POST] /contracts/create
 export const create = async (req, res) => {
     const data = req.body;
-   
-
+    const t = await sequelize.transaction();
     try {
         const timestamp = Date.now().toString().slice(-5);
-        const MaHopDong = `HD_${timestamp}`; 
-        const { 
-            MaPhong, MaNguoiThue, NgayBatDau, NgayKetThuc, 
-            TienCoc, GiaThueChot, SoNguoiO, services 
+        const MaHopDong = `HD_${timestamp}`;
+        const {
+            MaPhong, MaNguoiThue, NgayBatDau, NgayKetThuc,
+            TienCoc, GiaThueChot, SoNguoiO, services
         } = data;
-
         await sequelize.query(`
             INSERT INTO HOP_DONG (
                 MaHopDong, MaPhong, MaNguoiThue, 
@@ -78,20 +76,31 @@ export const create = async (req, res) => {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, {
             replacements: [
-                MaHopDong,
-                MaPhong,
-                MaNguoiThue,
-                NgayBatDau,
-                NgayKetThuc,
-                parseInt(TienCoc),
-                parseInt(GiaThueChot),
-                parseInt(SoNguoiO),
-                'ConHieuLuc',
-                0 // deleted = false
+                MaHopDong, MaPhong, MaNguoiThue,
+                NgayBatDau, NgayKetThuc,
+                parseInt(TienCoc), parseInt(GiaThueChot), parseInt(SoNguoiO),
+                'ConHieuLuc', 0
             ],
-            type: sequelize.QueryTypes.INSERT
+            type: sequelize.QueryTypes.INSERT,
+            transaction: t 
         });
-
+        await sequelize.query(`
+            INSERT INTO CU_DAN (
+                MaHopDong, MaNguoiThue, VaiTro, 
+                NgayVaoO, DangKyTamTru
+            )
+            VALUES (?, ?, ?, ?, ?)
+        `, {
+            replacements: [
+                MaHopDong,    
+                MaNguoiThue,  
+                'DaiDien',     
+                NgayBatDau,   
+                0           
+            ],
+            type: sequelize.QueryTypes.INSERT,
+            transaction: t
+        });
         if (services && services.length > 0) {
             for (const service of services) {
                 let donGia = null;
@@ -108,33 +117,32 @@ export const create = async (req, res) => {
                     VALUES (?, ?, ?, ?, ?, ?)
                 `, {
                     replacements: [
-                        MaHopDong,
-                        service.serviceId, 
-                        1,                 
-                        donGia,            
-                        NgayBatDau,        
-                        1             
+                        MaHopDong, service.serviceId,
+                        1, donGia,
+                        NgayBatDau, 1
                     ],
-                    type: sequelize.QueryTypes.INSERT
+                    type: sequelize.QueryTypes.INSERT,
+                    transaction: t 
                 });
             }
         }
-
         await sequelize.query(`
             UPDATE PHONG_TRO 
             SET TrangThai = 'DaChoThue' 
             WHERE MaPhong = ?
         `, {
             replacements: [MaPhong],
-            type: sequelize.QueryTypes.UPDATE
+            type: sequelize.QueryTypes.UPDATE,
+            transaction: t 
         });
+        await t.commit();
+
         req.flash('success', 'Tạo hợp đồng thành công!');
         res.redirect('/contracts');
 
     } catch (error) {
+        await t.rollback();
         console.error("Lỗi tạo hợp đồng:", error);
-
-        
         req.flash('error', 'Lỗi khi tạo hợp đồng: ' + error.message);
         res.redirect('/contracts');
     }

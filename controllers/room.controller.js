@@ -12,6 +12,7 @@ export const index = async (req, res) => {
         NT.HoTen AS TenKhachHang,
         NT.SDT AS SoDienThoai,
         P.GiaThueHienTai,
+        HD.TienCoc,
         COALESCE(HD.GiaThueChot, P.GiaThueHienTai) AS GiaHienThi,
         HD.NgayKetThuc
     FROM PHONG_TRO P
@@ -29,6 +30,7 @@ export const index = async (req, res) => {
        { deleted: false, raw: true }
         
     );
+    console.log(roomList);
   
     res.render('pages/rooms/index', {
         rooms: roomList[0],

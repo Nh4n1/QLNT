@@ -54,94 +54,110 @@ block main
                 | Chi tiết
 
     .modal.fade#contractModal(tabindex='-1', role='dialog', aria-labelledby='contractModalLabel', aria-hidden='true')
-      .modal-dialog.modal-lg(role='document')
+      .modal-dialog.modal-xl(role='document')
         .modal-content
           .modal-header
-            h5.modal-title#contractModalLabel Tạo mới hợp đồng
+            h5.modal-title#contractModalLabel Thêm hợp đồng mới
             button.close(type='button', data-dismiss='modal', aria-label='Close')
               span(aria-hidden='true') ×
           .modal-body
-            form#contractForm(action='/contracts/create', method='POST')
-              .form-section
-                h6.section-title
-                  i.fas.fa-building.me-2
-                  | THÔNG TIN PHÒNG VÀ HỢP ĐỒNG
-                
-                .row
-                  .col-md-6
-                    .form-group
-                      label(for='maPhong') Phòng
-                      select#maPhong.form-control(name='MaPhong', required)
-                        option(value='') -- Chọn phòng trống --
-                        each room in rooms 
-                            option(value=room.MaPhong data-gia= room.GiaThueHienTai)= room.TenPhong
-                  .col-md-6
-                    .form-group
-                      label(for='ngayBatDau') Ngày bắt đầu
-                      input#ngayBatDau.form-control(type='date', name='NgayBatDau', required)
-                
-                .row
-                  .col-md-6
-                    .form-group
-                      label(for='ngayKetThuc') Ngày kết thúc
-                      input#ngayKetThuc.form-control(type='date', name='NgayKetThuc', required)
-                  .col-md-6
-                    .form-group
-                      label(for='tienCoc') Tiền cọc (đ)
-                      input#tienCoc.form-control(type='number', name='TienCoc', placeholder='0', required)
-                
-                .row
-                  .col-md-6
-                    .form-group
-                      label(for='giaThueChotInput') Giá thuê chốt (đ)
-                      input#giaThueChot.form-control(type='number', name='GiaThueChot', placeholder='0', required)
-                  .col-md-6
-                    .form-group
-                      label(for='soNguoiO') Số người ở
-                      input#soNguoiO.form-control(type='number', name='SoNguoiO', placeholder='1', value='1', required)
+            .row.h-100
+              // Cột bên trái: Danh sách phòng
+              .col-md-4.left-panel
+                .room-list-panel
+                  h6.panel-title
+                    i.fas.fa-door-open.me-2
+                    | Danh sách phòng
+                  .room-list-content
+                    each room in rooms
+                      .room-item(data-room-id=room.MaPhong, data-room-price=room.GiaThueHienTai, data-room-name=room.TenPhong, data-room-capacity=room.SoNguoiToiDa)
+                        .room-item-header
+                          .room-item-name= room.TenPhong
+                          span.badge.badge-success Trống
+                        .room-item-price
+                          i.fas.fa-tag.me-1
+                          strong= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.GiaThueHienTai)
+                        .room-item-capacity
+                          i.fas.fa-users.me-1
+                          = room.SoNguoiToiDa + ' người'
               
-              .form-section
-                h6.section-title
-                  i.fas.fa-user.me-2
-                  | THÔNG TIN NGƯỜI THUÊ
-                
-                .row
-                  .col-md-12
+              // Cột bên phải: Form nhập thông tin
+              .col-md-8.right-panel
+                form#contractForm(action='/contracts/create', method='POST')
+                  // Phần thời hạn hợp đồng
+                  .form-section
+                    h6.section-title
+                      i.fas.fa-calendar.me-2
+                      | Thời hạn hợp đồng
+                    .row
+                      .col-md-6
+                        .form-group
+                          label(for='ngayBatDau') Ngày bắt đầu
+                          input#ngayBatDau.form-control(type='date', name='NgayBatDau', required)
+                      .col-md-6
+                        .form-group
+                          label(for='ngayKetThuc') Ngày kết thúc
+                          input#ngayKetThuc.form-control(type='date', name='NgayKetThuc', required)
+                  
+                  // Phần thông tin tài chính
+                  .form-section
+                    h6.section-title
+                      i.fas.fa-money-bill-wave.me-2
+                      | Thông tin tài chính
+                    .row
+                      .col-md-6
+                        .form-group
+                          label(for='tienCoc') Tiền cọc (đ)
+                          input#tienCoc.form-control(type='number', name='TienCoc', placeholder='0', required)
+                      .col-md-6
+                        .form-group
+                          label(for='giaThueChot') Giá thuê chốt (đ)
+                          input#giaThueChot.form-control(type='number', name='GiaThueChot', placeholder='0', required)
+                  
+                  // Phần thông tin khách thuê
+                  .form-section
+                    h6.section-title
+                      i.fas.fa-user-circle.me-2
+                      | Thông tin khách thuê
                     .form-group
-                      label(for='nguoiThue') Người thuê
+                      label(for='nguoiThue') Tên người thuê
                       select#nguoiThue.form-control(name='MaNguoiThue', required)
                         option(value='') -- Chọn người thuê --
                         each user in users
                           option(value=user.MaNguoiThue data-sdt=user.SDT data-cccd=user.CCCD)= user.HoTen
-                
-                .row
-                  .col-md-6
-                    .form-group
-                      label(for='sdt') Số điện thoại
-                      input#sdt.form-control(type='text', name='SoDienThoai', placeholder='0xxxxxxxxx', required)
-                  .col-md-6
+                    .row
+                      .col-md-6
+                        .form-group
+                          label(for='sdt') Số điện thoại
+                          input#sdt.form-control(type='text', name='SoDienThoai', placeholder='0xxxxxxxxx', required)
+                      .col-md-6
+                        .form-group
+                          label(for='soNguoiO') Số người ở
+                          input#soNguoiO.form-control(type='number', name='SoNguoiO', placeholder='1', value='1', required)
                     .form-group
                       label(for='cccd') CCCD/CMND
                       input#cccd.form-control(type='text', name='CCCD', placeholder='xxxxxxxxxxxxxxx')
-
-              .form-section
-                h6.section-title
-                  i.fas.fa-tools.me-2
-                  | DỊCH VỤ THÁNG
-                
-                .services-list
-                  each service in services
-                    .service-item.d-flex.align-items-center.mb-3
-                      .form-check
-                        input.form-check-input.service-checkbox(type='checkbox', id='service_' + service.MaDichVu, data-service-id=service.MaDichVu)
-                        label.form-check-label(for='service_' + service.MaDichVu)
-                          strong.me-2= service.TenDichVu
-                          span.service-unit
-                            = service.DonViTinh
-                      .service-price-input
-                        input.form-control.service-price-field(type='number', placeholder=service.DonGiaHienTai, data-service-id=service.MaDichVu, disabled)
-                        span.service-unit-text
-                          = ' đ/' + service.DonViTinh
+                  
+                  // Phần dịch vụ tháng
+                  .form-section
+                    h6.section-title
+                      i.fas.fa-tools.me-2
+                      | Dịch vụ tháng
+                    
+                    .services-list
+                      each service in services
+                        .service-item
+                          .form-check
+                            input.form-check-input.service-checkbox(type='checkbox', id='service_' + service.MaDichVu, data-service-id=service.MaDichVu)
+                            label.form-check-label(for='service_' + service.MaDichVu)
+                              strong.me-2= service.TenDichVu
+                              span.service-unit= service.DonViTinh
+                          .service-price-input
+                            input.form-control.service-price-field(type='number', placeholder=service.DonGiaHienTai, data-service-id=service.MaDichVu, disabled)
+                            span.service-unit-text= ' đ/' + service.DonViTinh
+                  
+                  // Hidden input cho MaPhong
+                  input#maPhong.d-none(type='hidden', name='MaPhong')
 
           .modal-footer
             button.btn.btn-secondary(type='button', data-dismiss='modal') Hủy
