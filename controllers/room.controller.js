@@ -42,9 +42,15 @@ export const index = async (req, res) => {
 //[POST] /rooms
 export const create = async (req, res) => {
     try {
-        const {  MaNha, TenPhong, GiaThueHienTai, SoNguoiToiDa, TrangThai } = req.body;
-        if (!MaNha || !TenPhong) {
-            req.flash('error', 'Vui lòng điền đầy đủ thông tin bắt buộc');
+        const { TenPhong, GiaThueHienTai, SoNguoiToiDa } = req.body;
+        const MaNha = res.locals.selectedHouseId;
+        
+        if (!MaNha) {
+            req.flash('error', 'Vui lòng chọn nhà trọ trước khi thêm phòng');
+            return res.redirect('/rooms');
+        }
+        if (!TenPhong) {
+            req.flash('error', 'Vui lòng điền tên phòng');
             return res.redirect('/rooms');
         }
         // Create new room

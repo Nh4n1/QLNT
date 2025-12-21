@@ -1,27 +1,126 @@
 .sider 
+    //- Phần chọn nhà trọ (bên trái)
+    .house-selector
+        .house-selector-btn#houseSelectorBtn(data-toggle='modal', data-target='#houseModal')
+            .house-indicator
+                i.fas.fa-home
+                span.house-badge= houseCount || 0
+            .house-info
+                span.house-label Đang quản lý
+                if selectedHouse
+                    span.house-name= selectedHouse.TenNha
+                else
+                    span.house-name Chưa có nhà trọ
+        button.btn-add-house#btnAddHouse(type='button', title='Thêm nhà trọ mới', data-toggle='modal', data-target='#addHouseModal')
+            i.fas.fa-plus
+
+    //- Menu chức năng
     .inner-menu 
         ul  
-            li 
-                a(href=` /rent-houses`)
-                    i.fas.fa-home
-                    span Quản lý nhà trọ
             li 
                 a(href=` /rooms`)
                     i.fas.fa-door-open
                     span Quản lý phòng
             li 
-                a(href=` /users`)
-                    i.fas.fa-users
-                    span Quản lý khách thuê
+                a(href=`/invoices`)
+                    i.fas.fa-receipt
+                    span Quản lý hóa đơn
+            li 
+                a(href=` /services`)
+                    i.fas.fa-concierge-bell
+                    span Quản lý dịch vụ
             li
                 a(href=` /contracts`)
                     i.fas.fa-file-contract
                     span Quản lý hợp đồng
             li 
-                a(href=`/invoices`)
-                    i.fas.fa-receipt
-                    span Quản lý hóa đơn
+                a(href=` /users`)
+                    i.fas.fa-users
+                    span Quản lý khách thuê
             li
                 a(href=`/revenue`)
                     i.fa-solid.fa-chart-area
-                    span Thống kê doanh thu
+                    span Thu/Chi - Tổng kết
+
+//- Modal danh sách nhà trọ
+.modal.fade#houseModal(tabindex='-1', role='dialog', aria-labelledby='houseModalLabel', aria-hidden='true')
+    .modal-dialog.modal-dialog-centered(role='document')
+        .modal-content.house-modal-content
+            .modal-header.house-modal-header
+                .modal-title-section
+                    i.fas.fa-home.mr-2
+                    div
+                        h5.modal-title#houseModalLabel Danh sách nhà trọ của bạn
+                        small.text-muted Chọn nhà trọ bạn muốn quản lý
+                button.close(type='button', data-dismiss='modal', aria-label='Close')
+                    span(aria-hidden='true') ×
+            
+            .modal-body.p-0
+                .house-list
+                    if houses && houses.length > 0
+                        each house in houses
+                            .house-list-item(class=(selectedHouseId === house.MaNha ? 'active' : ''))
+                                .house-item-info
+                                    h6.house-item-name= house.TenNha
+                                    p.house-item-address= house.DiaChi
+                                .house-item-actions
+                                    a.btn-house-action.btn-delete(href=`/rent-houses/delete/${house.MaNha}`, title='Xóa', onclick="return confirm('Bạn có chắc muốn xóa nhà trọ này?')")
+                                        i.fas.fa-trash
+                                    a.btn-house-action.btn-edit(href=`/rent-houses/edit/${house.MaNha}`, title='Sửa')
+                                        i.fas.fa-edit
+                                    a.btn-house-action.btn-select(href=`/houses/select/${house.MaNha}`, title='Chọn')
+                                        i.fas.fa-arrow-right
+                    else
+                        .p-4.text-center.text-muted
+                            i.fas.fa-home.fa-3x.mb-3
+                            p Chưa có nhà trọ nào. Hãy thêm nhà trọ mới!
+
+            .modal-footer.house-modal-footer
+                button.btn.btn-success.btn-block(type='button', data-dismiss='modal', data-toggle='modal', data-target='#addHouseModal')
+                    i.fas.fa-plus.mr-2
+                    | Thêm nhà trọ mới
+
+//- Modal thêm nhà trọ mới
+.modal.fade#addHouseModal(tabindex='-1', role='dialog', aria-labelledby='addHouseModalLabel', aria-hidden='true')
+    .modal-dialog.modal-dialog-centered(role='document')
+        .modal-content
+            form(action='/houses/create', method='POST')
+                .modal-header.bg-success.text-white
+                    h5.modal-title#addHouseModalLabel
+                        i.fas.fa-plus-circle.mr-2
+                        | Thêm nhà trọ mới
+                    button.close.text-white(type='button', data-dismiss='modal', aria-label='Close')
+                        span(aria-hidden='true') ×
+                
+                .modal-body
+                    .form-group
+                        label(for='TenNha')
+                            i.fas.fa-home.mr-1
+                            | Tên nhà trọ 
+                            span.text-danger *
+                        input.form-control#TenNha(
+                            type='text',
+                            name='TenNha',
+                            placeholder='VD: Nhà trọ Phương Anh',
+                            required
+                        )
+                    
+                    .form-group
+                        label(for='DiaChi')
+                            i.fas.fa-map-marker-alt.mr-1
+                            | Địa chỉ
+                            span.text-danger *
+                        textarea.form-control#DiaChi(
+                            name='DiaChi',
+                            rows='3',
+                            placeholder='VD: 122 Đường Kha Vạn Cần, Hiệp Bình Chánh, TP. Thủ Đức',
+                            required
+                        )
+                
+                .modal-footer
+                    button.btn.btn-secondary(type='button', data-dismiss='modal')
+                        i.fas.fa-times.mr-1
+                        | Hủy
+                    button.btn.btn-success(type='submit')
+                        i.fas.fa-save.mr-1
+                        | Lưu nhà trọ

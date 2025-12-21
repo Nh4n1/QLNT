@@ -1,0 +1,152 @@
+extends ../../layouts/default.pug
+include ../../mixins/alert.pug
+block main
+  .container-fluid.my-5
+    +alert-success(3000)
+    +alert-error(3000)
+    
+    .header-section.mb-4
+      .d-flex.justify-content-between.align-items-center
+        h1.page-title Dịch vụ phòng trọ
+        button.btn.btn-success(type='button', data-toggle='modal', data-target='#addServiceModal')
+          i.fas.fa-plus.mr-1
+          | Thêm dịch vụ
+    
+    //- Bảng danh sách dịch vụ
+    .table-responsive
+      table.table.table-hover.rooms-table
+        thead
+          tr
+            th(style='width: 50px') #
+            th Tên dịch vụ
+            th Đơn giá
+            th Đơn vị tính
+            th Loại dịch vụ
+            th
+        tbody
+          if services && services.length > 0
+            each service, index in services
+              tr
+                td= index + 1
+                td
+                  .room-name-col
+                    .room-name= service.TenDichVu
+                    .room-customer-name= service.DonViTinh || '-'
+                td
+                  .room-price= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(service.DonGiaHienTai || 0)
+                td= service.DonViTinh || '-'
+                td
+                  if service.LoaiDichVu === 'CoChiSo'
+                    span.badge.badge-info
+                      i.fas.fa-tachometer-alt.mr-1
+                      | Có chỉ số
+                  else
+                    span.badge.badge-secondary
+                      i.fas.fa-box.mr-1
+                      | Không chỉ số
+                td
+                  .dropdown
+                    button.btn.btn-sm.btn-link.dropdown-toggle(type='button', data-toggle='dropdown', aria-haspopup='true', aria-expanded='false')
+                      i.fas.fa-ellipsis-v
+                    .dropdown-menu.dropdown-menu-right
+                      button.dropdown-item(
+                        type='button',
+                        data-toggle='modal',
+                        data-target='#editServiceModal',
+                        data-id=service.MaDichVu,
+                        data-ten=service.TenDichVu,
+                        data-gia=service.DonGiaHienTai,
+                        data-donvi=service.DonViTinh,
+                        data-loai=service.LoaiDichVu
+                      )
+                        i.fas.fa-edit.mr-2
+                        | Chỉnh sửa
+                      a.dropdown-item(
+                        href=`/services/delete/${service.MaDichVu}`,
+                        onclick="return confirm('Bạn có chắc muốn xóa dịch vụ này?')"
+                      )
+                        i.fas.fa-trash.mr-2
+                        | Xóa dịch vụ
+          else
+            tr
+              td.text-center.text-muted(colspan='6')
+                i.fas.fa-inbox.fa-2x.mb-2.d-block
+                | Chưa có dịch vụ nào
+
+  //- Modal thêm dịch vụ mới
+  .modal.fade#addServiceModal(tabindex='-1', role='dialog')
+    .modal-dialog(role='document')
+      .modal-content
+        form(action='/services', method='POST')
+          .modal-header
+            h5.modal-title Thêm dịch vụ mới
+            button.close(type='button', data-dismiss='modal')
+              span ×
+          .modal-body
+            .form-group
+              label(for='tenDichVu') Tên dịch vụ
+              input#tenDichVu.form-control(type='text', name='TenDichVu', placeholder='VD: Điện sinh hoạt', required)
+            .form-group
+              label(for='donGia') Đơn giá (VNĐ)
+              input#donGia.form-control(type='number', name='DonGiaHienTai', placeholder='0', value='0')
+            .form-group
+              label(for='donViTinh') Đơn vị tính
+              input#donViTinh.form-control(type='text', name='DonViTinh', placeholder='VD: kWh, Khối, Tháng')
+            .form-group
+              label(for='loaiDichVu') Loại dịch vụ
+              select#loaiDichVu.form-control(name='LoaiDichVu')
+                option(value='KhongChiSo') Không có chỉ số (cố định)
+                option(value='CoChiSo') Có chỉ số (điện, nước)
+          .modal-footer
+            button.btn.btn-secondary(type='button', data-dismiss='modal') Hủy
+            button.btn.btn-success(type='submit')
+              i.fas.fa-save.mr-1
+              | Lưu lại
+
+  //- Modal chỉnh sửa dịch vụ
+  .modal.fade#editServiceModal(tabindex='-1', role='dialog')
+    .modal-dialog(role='document')
+      .modal-content
+        form#editServiceForm(method='POST')
+          .modal-header
+            h5.modal-title Chỉnh sửa dịch vụ
+            button.close(type='button', data-dismiss='modal')
+              span ×
+          .modal-body
+            .form-group
+              label(for='editTenDichVu') Tên dịch vụ
+              input#editTenDichVu.form-control(type='text', name='TenDichVu', required)
+            .form-group
+              label(for='editDonGia') Đơn giá (VNĐ)
+              input#editDonGia.form-control(type='number', name='DonGiaHienTai')
+            .form-group
+              label(for='editDonViTinh') Đơn vị tính
+              input#editDonViTinh.form-control(type='text', name='DonViTinh')
+            .form-group
+              label(for='editLoaiDichVu') Loại dịch vụ
+              select#editLoaiDichVu.form-control(name='LoaiDichVu')
+                option(value='KhongChiSo') Không có chỉ số (cố định)
+                option(value='CoChiSo') Có chỉ số (điện, nước)
+          .modal-footer
+            button.btn.btn-secondary(type='button', data-dismiss='modal') Hủy
+            button.btn.btn-success(type='submit')
+              i.fas.fa-save.mr-1
+              | Cập nhật
+
+  script.
+    // Xử lý modal chỉnh sửa
+    $('#editServiceModal').on('show.bs.modal', function (event) {
+      var button = $(event.relatedTarget);
+      var id = button.data('id');
+      var ten = button.data('ten');
+      var gia = button.data('gia');
+      var donvi = button.data('donvi');
+      var loai = button.data('loai');
+      
+      var modal = $(this);
+      modal.find('#editServiceForm').attr('action', '/services/update/' + id);
+      modal.find('#editTenDichVu').val(ten);
+      modal.find('#editDonGia').val(gia);
+      modal.find('#editDonViTinh').val(donvi);
+      modal.find('#editLoaiDichVu').val(loai);
+    });

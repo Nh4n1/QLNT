@@ -3,6 +3,7 @@ import { invoiceRouter } from './invoice.route.js';
 import { rentHouseRouter } from './rent-house.route.js';
 import { revenueRouter } from './revenue.route.js';
 import { roomRouter } from './room.route.js';
+import { serviceRouter } from './service.route.js';
 import { userRouter } from './user.route.js';
 
 const clientRouter = (app) => {
@@ -12,6 +13,7 @@ const clientRouter = (app) => {
     app.use('/contracts', contractRouter);
     app.use('/invoices', invoiceRouter);
     app.use('/revenue',revenueRouter);
+    app.use('/services',serviceRouter);
 }
 
 export default clientRouter;

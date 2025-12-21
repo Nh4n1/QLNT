@@ -4,6 +4,7 @@ import clientRouter from './routes/index.route.js';
 import session from 'express-session';
 import flash from 'express-flash';
 import cookieParser from 'cookie-parser';
+import { loadHouses, selectHouse, createHouse } from './middlewares/house.middleware.js';
 dotenv.config();
 
 const app = express();
@@ -14,8 +15,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(cookieParser('keyboard cat'));
-app.use(session({ cookie: { maxAge: 60000 }}));
+app.use(session({ 
+    secret: 'keyboard cat',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { maxAge: 24 * 60 * 60 * 1000 } // 1 ngày
+}));
 app.use(flash());
+
+// Middleware load danh sách nhà trọ cho tất cả các trang
+app.use(loadHouses);
+
+// Routes cho việc chọn/tạo nhà trọ từ sider
+app.get('/houses/select/:id', selectHouse);
+app.post('/houses/create', createHouse);
 
 
 
