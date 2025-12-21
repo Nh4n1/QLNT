@@ -1,4 +1,5 @@
 import { contractRouter } from './contract.route.js';
+import { invoiceRouter } from './invoice.route.js';
 import { rentHouseRouter } from './rent-house.route.js';
 import { roomRouter } from './room.route.js';
 import { userRouter } from './user.route.js';
@@ -8,6 +9,7 @@ const clientRouter = (app) => {
     app.use('/rooms', roomRouter); 
     app.use('/users',userRouter);
     app.use('/contracts', contractRouter);
+    app.use('/invoices', invoiceRouter);
 }
 
 export default clientRouter;

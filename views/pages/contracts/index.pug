@@ -62,6 +62,9 @@ block main
                         i.fas.fa-eye
                       button.btn.btn-sm.btn-outline-info(type='button', title='Sửa')
                         i.fas.fa-edit
+                      if trangThaiHienThi !== 'Đã hết hạn'
+                        button.btn.btn-sm.btn-outline-danger(type='button', title='Kết thúc hợp đồng')
+                          i.fas.fa-stop-circle
             else
               tr
                 td(colspan='6')

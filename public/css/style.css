@@ -1249,3 +1249,530 @@
   }
 }
 
+/* ===== INVOICE FORM STYLES ===== */
+
+/* Invoice Table */
+.invoices-table {
+  background-color: white;
+  border-collapse: collapse;
+  margin-bottom: 0;
+}
+
+.invoices-table thead {
+  background: linear-gradient(135deg, #1e8449 0%, #155934 100%);
+  border-bottom: 2px solid #144b31;
+}
+
+.invoices-table thead th {
+  padding: 18px 20px;
+  font-weight: 700;
+  color: white;
+  text-align: left;
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.invoices-table tbody tr {
+  border-bottom: 1px solid #e9ecef;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.invoices-table tbody tr:hover {
+  background-color: #f8fbff;
+  box-shadow: inset 3px 0 0 #1e8449;
+}
+
+.invoices-table td {
+  padding: 18px 20px;
+  vertical-align: middle;
+  font-size: 14px;
+}
+
+.invoice-code {
+  font-weight: 700;
+  color: #1e8449;
+  font-size: 14px;
+}
+
+.invoice-room-name {
+  font-weight: 700;
+  color: #1a202c;
+  font-size: 15px;
+}
+
+.invoice-tenant-name {
+  color: #4a5568;
+  font-weight: 600;
+}
+
+.invoice-period {
+  color: #718096;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.invoice-total {
+  font-weight: 700;
+  color: #d63031;
+  font-size: 15px;
+}
+
+.invoice-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Room Invoice Item */
+.room-invoice-item {
+  padding: 14px 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.room-invoice-item:hover {
+  border-color: #1e8449;
+  background: linear-gradient(135deg, #f7fafc 0%, #f0f2f5 100%);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(30, 132, 73, 0.15);
+}
+
+.room-invoice-item.selected {
+  border-color: #1e8449;
+  background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f6 100%);
+  box-shadow: 0 6px 16px rgba(30, 132, 73, 0.25);
+  border-left: 4px solid #1e8449;
+}
+
+.room-item-tenant {
+  font-size: 13px;
+  color: #4a5568;
+  font-weight: 600;
+}
+
+.room-item-tenant i {
+  color: #1e8449;
+}
+
+.empty-room-list {
+  text-align: center;
+  padding: 40px 20px;
+  color: #718096;
+}
+
+.empty-room-list i {
+  font-size: 40px;
+  color: #cbd5e0;
+  margin-bottom: 12px;
+  display: block;
+}
+
+/* Invoice Room Section */
+.invoice-room-section .room-price-display {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.price-input-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.price-input-group input {
+  flex: 1;
+  max-width: 200px;
+}
+
+.input-suffix {
+  color: #718096;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.price-calculation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px dashed #e9ecef;
+}
+
+.calc-period {
+  color: #4a5568;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.calc-period span {
+  color: #1e8449;
+  font-weight: 700;
+}
+
+.calc-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.calc-label {
+  color: #718096;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.calc-amount {
+  font-weight: 700;
+  color: #d63031;
+  font-size: 16px;
+}
+
+/* Services Group */
+.services-group {
+  margin-bottom: 20px;
+}
+
+.services-group-title {
+  font-weight: 700;
+  color: #2d3748;
+  font-size: 13px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #f0f2f5;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.services-group-title i {
+  color: #1e8449;
+  margin-right: 6px;
+}
+
+/* Service Index Item (điện, nước) */
+.service-index-item {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: all 0.3s ease;
+}
+
+.service-index-item:hover {
+  border-color: #1e8449;
+  box-shadow: 0 2px 8px rgba(30, 132, 73, 0.1);
+}
+
+.service-header {
+  margin-bottom: 12px;
+}
+
+.service-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.service-name strong {
+  font-size: 14px;
+  color: #1a202c;
+}
+
+.service-price {
+  font-size: 12px;
+  color: #718096;
+  font-weight: 600;
+  background: #f0f2f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.service-index-inputs {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.index-input-group {
+  flex: 1;
+  min-width: 100px;
+}
+
+.index-input-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #718096;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.index-input-group input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.index-input-group input:focus {
+  border-color: #1e8449;
+  box-shadow: 0 0 0 3px rgba(30, 132, 73, 0.1);
+  outline: none;
+}
+
+.index-result {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f6 100%);
+  border-radius: 6px;
+  border-left: 3px solid #1e8449;
+}
+
+.usage-display {
+  font-size: 12px;
+  color: #4a5568;
+  font-weight: 600;
+}
+
+.usage-value {
+  color: #1e8449;
+  font-weight: 700;
+  margin: 0 4px;
+}
+
+.amount-display {
+  font-size: 14px;
+  font-weight: 700;
+  color: #d63031;
+}
+
+/* Service Calc Option */
+.service-calc-option {
+  background: linear-gradient(135deg, #fff7ed 0%, #fef3c7 100%);
+  border: 2px solid #f59e0b;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 16px 0;
+}
+
+.service-calc-option .form-check-label {
+  font-weight: 600;
+  color: #92400e;
+  cursor: pointer;
+}
+
+.service-calc-option .form-check-input {
+  margin-right: 10px;
+  cursor: pointer;
+}
+
+/* Service Fixed Item */
+.service-fixed-item {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.service-fixed-item:hover {
+  border-color: #1e8449;
+  background: #f7fafc;
+}
+
+.service-info {
+  flex: 1;
+}
+
+.service-info .form-check {
+  margin: 0;
+}
+
+.service-info .form-check-label {
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.service-amount {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.service-fixed-price {
+  font-weight: 700;
+  color: #d63031;
+  font-size: 14px;
+}
+
+/* Invoice Footer */
+.invoice-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #f7fafc 0%, #f0f2f5 100%);
+  border-top: 2px solid #e9ecef;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.invoice-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 250px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.summary-label {
+  color: #4a5568;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.summary-value {
+  font-weight: 700;
+  color: #1a202c;
+  font-size: 14px;
+}
+
+.summary-total {
+  border-top: 2px dashed #1e8449;
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+.summary-total .summary-label {
+  color: #1a202c;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.summary-total .summary-value {
+  color: #d63031;
+  font-size: 20px;
+}
+
+.invoice-actions-btn {
+  display: flex;
+  gap: 12px;
+}
+
+.invoice-actions-btn .btn {
+  padding: 12px 28px;
+  font-weight: 700;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.invoice-actions-btn .btn-secondary {
+  background: #6c757d;
+  border: none;
+  color: white;
+}
+
+.invoice-actions-btn .btn-secondary:hover {
+  background: #5a6268;
+}
+
+.invoice-actions-btn .btn-primary {
+  background: linear-gradient(135deg, #1e8449 0%, #155934 100%);
+  border: none;
+  color: white;
+}
+
+.invoice-actions-btn .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(30, 132, 73, 0.3);
+}
+
+/* Responsive Invoice Modal */
+@media (max-width: 768px) {
+  .invoice-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .invoice-actions-btn {
+    justify-content: stretch;
+  }
+  
+  .invoice-actions-btn .btn {
+    flex: 1;
+  }
+  
+  .service-index-inputs {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .index-input-group {
+    min-width: 100%;
+  }
+}
+
+/* Room Item Services Badge */
+.room-item-services {
+  font-size: 12px;
+  color: #718096;
+  font-weight: 600;
+  padding: 4px 8px;
+  background: #f0f2f5;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.room-item-services i {
+  color: #1e8449;
+  font-size: 11px;
+}
+
+/* No Room Selected Message */
+.no-room-message {
+  text-align: center;
+  padding: 30px 20px;
+  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+  border: 2px dashed #cbd5e0;
+  border-radius: 8px;
+  color: #718096;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.no-room-message i {
+  color: #1e8449;
+  font-size: 18px;
+}

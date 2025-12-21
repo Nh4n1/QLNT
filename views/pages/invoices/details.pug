@@ -1,0 +1,254 @@
+extends ../../layouts/invoice.pug
+
+block main 
+    - const soTienDaThu = invoice.SoTienDaThu || 0
+    - const soTienConNo = invoice.TongTien - soTienDaThu
+    - const trangThaiClass = invoice.TrangThai === 'DaThanhToan' ? 'status-paid' : (invoice.TrangThai === 'ThanhToanMotPhan' ? 'status-partial' : 'status-unpaid')
+    - const trangThaiText = invoice.TrangThai === 'DaThanhToan' ? 'Đã thanh toán' : (invoice.TrangThai === 'ThanhToanMotPhan' ? 'Thanh toán một phần' : 'Chưa thanh toán')
+    
+    .invoice-wrapper
+        //- Header
+        .invoice-header
+            .d-flex.justify-content-between.align-items-center
+                .invoice-logo
+                    i.fas.fa-home
+                    | NHÀ TRỌ
+                .invoice-title
+                    h1 HÓA ĐƠN
+                    .invoice-code ##{invoice.MaHoaDon}
+                    .mt-2
+                        span(class='status-badge ' + trangThaiClass)= trangThaiText
+
+        //- Body
+        .invoice-body
+            //- Info Grid
+            .info-grid
+                .info-box
+                    h3
+                        i.fas.fa-user.mr-2
+                        | Thông tin khách thuê
+                    p
+                        strong Họ tên: 
+                        span.highlight= invoice.HoTen
+                    p
+                        strong Điện thoại: 
+                        = invoice.SDT || 'Chưa cập nhật'
+                    p
+                        strong Địa chỉ: 
+                        = invoice.DiaChi || 'Chưa cập nhật'
+
+                .info-box
+                    h3
+                        i.fas.fa-door-open.mr-2
+                        | Thông tin hóa đơn
+                    p
+                        strong Phòng: 
+                        span.highlight= invoice.TenPhong
+                    p
+                        strong Ngày lập: 
+                        = new Date(invoice.NgayLap).toLocaleDateString('vi-VN')
+                    p
+                        strong Kỳ thanh toán: 
+                        = new Date(invoice.TuNgay).toLocaleDateString('vi-VN')
+                        |  → 
+                        = new Date(invoice.DenNgay).toLocaleDateString('vi-VN')
+
+            //- Services Table
+            table.services-table
+                thead
+                    tr
+                        th(style='width: 5%') #
+                        th(style='width: 30%') Dịch vụ
+                        th.text-center(style='width: 15%') Chỉ số cũ
+                        th.text-center(style='width: 15%') Chỉ số mới
+                        th.text-center(style='width: 10%') SL
+                        th.text-right(style='width: 12%') Đơn giá
+                        th.text-right(style='width: 13%') Thành tiền
+                tbody
+                    if details && details.length > 0
+                        each detail, index in details
+                            tr
+                                td.text-center= index + 1
+                                td
+                                    span.service-name= detail.TenDichVu
+                                    if detail.DonViTinh
+                                        span.service-unit= detail.DonViTinh
+                                td.text-center
+                                    if detail.ChiSoCu !== null
+                                        span.index-badge.index-old= detail.ChiSoCu
+                                    else
+                                        span.text-muted —
+                                td.text-center
+                                    if detail.ChiSoMoi !== null
+                                        span.index-badge.index-new= detail.ChiSoMoi
+                                    else
+                                        span.text-muted —
+                                td.text-center= detail.SoLuong || 1
+                                td.text-right= new Intl.NumberFormat('vi-VN').format(detail.DonGiaLuuTru) + 'đ'
+                                td.text-right
+                                    strong= new Intl.NumberFormat('vi-VN').format(detail.ThanhTien) + 'đ'
+                    else
+                        tr
+                            td.text-center(colspan='7')
+                                .text-muted.py-3 Không có chi tiết dịch vụ
+
+            //- Total Section
+            .total-section
+                .total-label
+                    i.fas.fa-receipt.mr-2
+                    | TỔNG CỘNG
+                .total-amount= new Intl.NumberFormat('vi-VN').format(invoice.TongTien) + ' ₫'
+
+            //- Payment Info Section (nếu đã có thanh toán một phần)
+            if soTienDaThu > 0
+                .payment-info-section
+                    .payment-info-row
+                        span.payment-label
+                            i.fas.fa-check-circle.mr-2
+                            | Đã thanh toán:
+                        span.payment-value.text-success= new Intl.NumberFormat('vi-VN').format(soTienDaThu) + ' ₫'
+                    .payment-info-row
+                        span.payment-label
+                            i.fas.fa-exclamation-circle.mr-2
+                            | Còn nợ:
+                        span.payment-value.text-danger= new Intl.NumberFormat('vi-VN').format(soTienConNo) + ' ₫'
+
+        //- Footer
+        .invoice-footer.no-print
+            a.btn-action.btn-back(href='/invoices')
+                i.fas.fa-arrow-left
+                | Quay lại
+
+            .action-buttons
+                if invoice.TrangThai !== 'DaThanhToan'
+                    button.btn-action.btn-pay#btnPayInvoice(type='button', data-toggle='modal', data-target='#paymentModal')
+                        i.fas.fa-check-circle
+                        | Thanh toán
+                button.btn-action.btn-pdf#btnExportPDF(type='button')
+                    i.fas.fa-file-pdf
+                    | Xuất PDF
+                button.btn-action.btn-delete#btnDeleteInvoice(type='button')
+                    i.fas.fa-trash
+                    | Xóa
+
+    //- Modal Lập Phiếu Thu
+    .modal.fade#paymentModal(tabindex='-1', role='dialog', aria-labelledby='paymentModalLabel', aria-hidden='true')
+        .modal-dialog.modal-dialog-centered(role='document')
+            .modal-content.payment-modal-content
+                .modal-header.payment-modal-header
+                    h5.modal-title#paymentModalLabel
+                        i.fas.fa-money-bill-wave.mr-2
+                        | Lập phiếu thu
+                    button.close(type='button', data-dismiss='modal', aria-label='Close')
+                        span(aria-hidden='true') ×
+                
+                form#paymentForm(action='/invoices/payment', method='POST')
+                    .modal-body
+                        //- Thông tin hóa đơn
+                        .payment-invoice-info
+                            .info-row
+                                span.info-key Mã hóa đơn:
+                                span.info-val= invoice.MaHoaDon
+                            .info-row
+                                span.info-key Tổng tiền:
+                                span.info-val= new Intl.NumberFormat('vi-VN').format(invoice.TongTien) + ' ₫'
+                            .info-row.highlight-row
+                                span.info-key Còn phải thu:
+                                span.info-val.text-danger.font-weight-bold= new Intl.NumberFormat('vi-VN').format(soTienConNo) + ' ₫'
+
+                        input(type='hidden', name='MaHoaDon', value=invoice.MaHoaDon)
+
+                        //- Số tiền thanh toán
+                        .form-group
+                            label.form-label(for='soTienThu')
+                                i.fas.fa-coins.mr-2
+                                | Số tiền thanh toán
+                            .input-group
+                                input#soTienThu.form-control(
+                                    type='number', 
+                                    name='SoTienThu', 
+                                    placeholder='Nhập số tiền', 
+                                    required,
+                                    min='1',
+                                    max=soTienConNo,
+                                    value=soTienConNo
+                                )
+                                .input-group-append
+                                    span.input-group-text ₫
+
+                        //- Hình thức thanh toán
+                        .form-group
+                            label.form-label(for='hinhThuc')
+                                i.fas.fa-credit-card.mr-2
+                                | Hình thức thanh toán
+                            select#hinhThuc.form-control(name='HinhThuc', required)
+                                option(value='TienMat') Tiền mặt
+                                option(value='ChuyenKhoan') Chuyển khoản
+
+                        //- Ngày thu
+                        .form-group
+                            label.form-label(for='ngayThu')
+                                i.fas.fa-calendar-alt.mr-2
+                                | Ngày ghi nhận thu phí
+                            input#ngayThu.form-control(
+                                type='date', 
+                                name='NgayThu', 
+                                required,
+                                value=new Date().toISOString().split('T')[0]
+                            )
+
+                        //- Ghi chú
+                        .form-group
+                            label.form-label(for='ghiChu')
+                                i.fas.fa-sticky-note.mr-2
+                                | Ghi chú
+                            textarea#ghiChu.form-control(
+                                name='GhiChu', 
+                                rows='2', 
+                                placeholder='Nhập ghi chú (nếu có)...'
+                            )
+
+                        //- Hiển thị số tiền còn nợ sau khi thanh toán
+                        .payment-summary
+                            .summary-row
+                                span.summary-label Số tiền còn nợ sau thanh toán:
+                                span.summary-value#remainingDebt= new Intl.NumberFormat('vi-VN').format(0) + ' ₫'
+
+                    .modal-footer
+                        button.btn.btn-secondary(type='button', data-dismiss='modal')
+                            i.fas.fa-times.mr-2
+                            | Đóng
+                        button.btn.btn-success#btnSubmitPayment(type='submit')
+                            i.fas.fa-check.mr-2
+                            | Thu tiền
+
+block scripts
+    script.
+        document.getElementById('btnExportPDF').addEventListener('click', function() {
+            window.print();
+        });
+
+        // Tính toán số tiền còn nợ khi thay đổi số tiền thanh toán
+        const soTienConNo = #{soTienConNo};
+        const soTienThuInput = document.getElementById('soTienThu');
+        const remainingDebtSpan = document.getElementById('remainingDebt');
+
+        if (soTienThuInput) {
+            soTienThuInput.addEventListener('input', function() {
+                const soTienThu = parseFloat(this.value) || 0;
+                const remaining = soTienConNo - soTienThu;
+                remainingDebtSpan.textContent = new Intl.NumberFormat('vi-VN').format(remaining < 0 ? 0 : remaining) + ' ₫';
+                
+                // Đổi màu tùy theo còn nợ hay không
+                if (remaining <= 0) {
+                    remainingDebtSpan.classList.remove('text-danger');
+                    remainingDebtSpan.classList.add('text-success');
+                } else {
+                    remainingDebtSpan.classList.remove('text-success');
+                    remainingDebtSpan.classList.add('text-danger');
+                }
+            });
+            
+            // Trigger lần đầu
+            soTienThuInput.dispatchEvent(new Event('input'));
+        }

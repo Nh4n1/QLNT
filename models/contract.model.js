@@ -40,6 +40,10 @@ const Contract = sequelize.define('Contract', {
         type: DataTypes.DATE,
         allowNull: true
     },
+    NgayTaoHopDong: {
+        type: DataTypes.DATE,
+        allowNull: false
+    },
     TienCoc: {
         type: DataTypes.DECIMAL(18, 0),
         defaultValue: 0

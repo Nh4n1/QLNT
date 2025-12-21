@@ -1,0 +1,187 @@
+extends ../../layouts/default.pug
+include ../../mixins/alert.pug
+block main 
+    .container-fluid.my-5
+        +alert-success(3000)
+        +alert-error(3000)
+
+        .header-section.mb-4
+            .d-flex.justify-content-between.align-items-center
+                h1.page-title Danh sách hóa đơn
+                .action-buttons
+                    select.form-control.filter-status(id='filterInvoiceStatus', style='max-width: 180px; margin-right: 10px;')
+                        option(value='') -- Tất cả --
+                        option(value='ChuaThanhToan') Chưa thanh toán
+                        option(value='DaThanhToan') Đã thanh toán
+                    button.btn.btn-success#btnNewInvoice(type='button')
+                        i.fas.fa-plus.me-2
+                        | Tạo hóa đơn mới
+
+        .table-responsive
+            table.table.table-hover.invoices-table
+                thead
+                    tr
+                        th Mã hóa đơn
+                        th Phòng
+                        th Khách thuê
+                        th Kỳ thanh toán
+                        th Tổng tiền
+                        th Trạng thái
+                        th
+                tbody
+                    if invoices && invoices.length > 0
+                        each invoice in invoices
+                            tr
+                                td
+                                    .invoice-code= invoice.MaHoaDon
+                                td
+                                    .invoice-room-name= invoice.TenPhong
+                                td
+                                    .invoice-tenant-name= invoice.TenNguoiThue
+                                td
+                                    .invoice-period
+                                        = new Date(invoice.TuNgay).toLocaleDateString('vi-VN')
+                                        |  - 
+                                        = new Date(invoice.DenNgay).toLocaleDateString('vi-VN')
+                                td
+                                    .invoice-total= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(invoice.TongTien)
+                                td
+                                    - const isPaid = invoice.TrangThai === 'DaThanhToan'
+                                    span(class='badge ' + (isPaid ? 'badge-success' : 'badge-warning'))
+                                        = isPaid ? 'Đã thanh toán' : 'Chưa thanh toán'
+                                td
+                                    .invoice-actions
+                                        a.btn.btn-sm.btn-outline-primary(href='/invoices/details/' + invoice.MaHoaDon, title='Chi tiết')
+                                            i.fas.fa-eye
+                    else
+                        tr
+                            td(colspan='7')
+                                .empty-state
+                                    i.fas.fa-file-invoice
+                                    p Chưa có hóa đơn nào
+
+    .modal.fade#invoiceModal(tabindex='-1', role='dialog', aria-labelledby='invoiceModalLabel', aria-hidden='true')
+        .modal-dialog.modal-xl(role='document')
+            .modal-content
+                .modal-header
+                    h5.modal-title#invoiceModalLabel Tạo hóa đơn mới
+                    button.close(type='button', data-dismiss='modal', aria-label='Close')
+                        span(aria-hidden='true') ×
+                .modal-body
+                    .row.h-100
+                        .col-md-4.left-panel
+                            .room-list-panel
+                                h6.panel-title
+                                    i.fas.fa-door-open.me-2
+                                    | Chọn phòng
+                                .room-list-content
+                                    if rooms && rooms.length > 0
+                                        each room in rooms
+                                            - const servicesData = JSON.stringify({ withIndex: room.servicesWithIndex, withoutIndex: room.servicesWithoutIndex })
+                                            .room-invoice-item(
+                                                data-room-id=room.MaPhong
+                                                data-room-name=room.TenPhong
+                                                data-room-price=room.GiaThueChot
+                                                data-contract-id=room.MaHopDong
+                                                data-services=servicesData
+                                            )
+                                                .room-item-header
+                                                    .room-item-name= room.TenPhong
+                                                    span.badge.badge-success Đang thuê
+                                                .room-item-tenant
+                                                    i.fas.fa-user.me-1
+                                                    = room.NguoiDaiDien
+                                                .room-item-price
+                                                    i.fas.fa-tag.me-1
+                                                    strong= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.GiaThueChot)
+                                                .room-item-services
+                                                    i.fas.fa-concierge-bell.me-1
+                                                    = room.services.length + ' dịch vụ'
+                                    else
+                                        .empty-room-list
+                                            i.fas.fa-inbox
+                                            p Không có phòng đang thuê
+
+                        .col-md-8.right-panel
+                            form#invoiceForm(action='/invoices/create', method='POST')
+                                .form-section
+                                    h6.section-title
+                                        i.fas.fa-calendar-alt.me-2
+                                        | Thông tin hóa đơn
+                                    .form-group
+                                        label(for='ngayLapHoaDon') Ngày lập hóa đơn
+                                        input#ngayLapHoaDon.form-control(type='date', name='NgayLap', required)
+                                .form-section.invoice-room-section
+                                    h6.section-title
+                                        i.fas.fa-home.me-2
+                                        | Thu tiền phòng
+                                    .row
+                                        .col-md-6
+                                            .form-group
+                                                label(for='tuNgay') Từ ngày
+                                                input#tuNgay.form-control(type='date', name='TuNgay', required)
+                                        .col-md-6
+                                            .form-group
+                                                label(for='denNgay') Đến ngày
+                                                input#denNgay.form-control(type='date', name='DenNgay', required)
+                                    .form-group
+                                        label Tiền phòng (tháng)
+                                        .room-price-display
+                                            .price-input-group
+                                                input#giaPhong.form-control(type='number', name='GiaPhong', placeholder='0', readonly)
+                                                span.input-suffix đ/tháng
+                                            .price-calculation
+                                                .calc-period
+                                                    span#calcMonths 0
+                                                    |  tháng 
+                                                    span#calcDays 0
+                                                    |  ngày
+                                                .calc-result
+                                                    span.calc-label Thành tiền:
+                                                    span#roomTotal.calc-amount 0 ₫
+                                .form-section.invoice-services-section
+                                    h6.section-title
+                                        i.fas.fa-tools.me-2
+                                        | Tiền dịch vụ
+                                    
+                                    //- Container cho dịch vụ có chỉ số (sẽ được render bởi JS)
+                                    #servicesWithIndexContainer.services-group(style='display: none;')
+                                        .services-group-title
+                                            i.fas.fa-tachometer-alt.me-1
+                                            | Dịch vụ có chỉ số
+                                        #servicesWithIndexList
+                                    
+                                    .service-calc-option
+                                        .form-check
+                                            input#calcByDay.form-check-input(type='checkbox', name='tinhTheoNgay')
+                                            label.form-check-label(for='calcByDay')
+                                                i.fas.fa-calendar-day.me-1
+                                                | Tính dịch vụ cố định theo ngày thực tế
+                                    
+                                    //- Container cho dịch vụ cố định (sẽ được render bởi JS)
+                                    #servicesWithoutIndexContainer.services-group(style='display: none;')
+                                        .services-group-title
+                                            i.fas.fa-list.me-1
+                                            | Dịch vụ cố định
+                                        #servicesWithoutIndexList
+                                    
+                                    //- Thông báo khi chưa chọn phòng
+                                    #noRoomSelectedMessage.no-room-message
+                                        i.fas.fa-info-circle.me-2
+                                        | Vui lòng chọn phòng để xem dịch vụ đã đăng ký
+                                input#maHopDongInvoice(type='hidden', name='MaHopDong')
+                                input#maPhongInvoice(type='hidden', name='MaPhong')
+                .modal-footer.invoice-footer
+                    .invoice-summary
+                        .summary-row
+                            span.summary-label Tiền phòng:
+                            span#summaryRoom.summary-value 0 ₫
+                        .summary-row
+                            span.summary-label Tiền dịch vụ:
+                            span#summaryServices.summary-value 0 ₫
+                        .summary-row.summary-total
+                            span.summary-label Tổng cộng:
+                            span#summaryTotal.summary-value 0 ₫
+                    .invoice-actions-btn
+                        button.btn.btn-secondary(type='button', data-dismiss='modal') Hủy
+                        button#btnSaveInvoice.btn.btn-primary(type='button') Tạo hóa đơn

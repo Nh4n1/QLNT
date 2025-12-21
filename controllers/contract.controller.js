@@ -49,8 +49,7 @@ AND NOT EXISTS (
     AND HD.NgayBatDau <= CURRENT_DATE()
     AND (HD.NgayKetThuc IS NULL OR HD.NgayKetThuc >= CURRENT_DATE())
 );`);
-    console.log(rooms);
-  const [services] = await sequelize.query(`SELECT * FROM dich_vu WHERE deleted = 0;`)
+  const [services] = await sequelize.query(`SELECT * FROM dich_vu WHERE deleted = 0 AND LoaiDichVu != 'TienPhong';`)
   res.render('pages/contracts/index', { title: 'Contracts', contracts, rooms, users,services, messages: req.flash()});
 }
 
@@ -66,18 +65,20 @@ export const create = async (req, res) => {
             MaPhong, MaNguoiThue, NgayBatDau, NgayKetThuc,
             TienCoc, GiaThueChot, SoNguoiO, services
         } = data;
+        const NgayTaoHopDong = new Date();
         await sequelize.query(`
             INSERT INTO HOP_DONG (
                 MaHopDong, MaPhong, MaNguoiThue, 
                 NgayBatDau, NgayKetThuc, 
-                TienCoc, GiaThueChot, SoNguoiO, 
+                NgayTaoHopDong, TienCoc, GiaThueChot, SoNguoiO,
                 TrangThai, deleted
             ) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, {
             replacements: [
                 MaHopDong, MaPhong, MaNguoiThue,
                 NgayBatDau, NgayKetThuc,
+                NgayTaoHopDong,
                 parseInt(TienCoc), parseInt(GiaThueChot), parseInt(SoNguoiO),
                 'ConHieuLuc', 0
             ],
