@@ -30,7 +30,6 @@ export const index = async (req, res) => {
        { deleted: false, raw: true }
         
     );
-    console.log(roomList);
   
     res.render('pages/rooms/index', {
         rooms: roomList[0],

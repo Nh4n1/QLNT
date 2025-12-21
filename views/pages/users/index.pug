@@ -1,0 +1,263 @@
+extends ../../layouts/default.pug
+include ../../mixins/alert.pug
+block main
+  .container-fluid.my-5
+    +alert-success(3000)
+    +alert-error(3000)
+    
+    // Section 1: Danh sách tất cả người thuê
+    .users-section.mb-5
+      .section-header.d-flex.justify-content-between.align-items-center.mb-4
+        h2.section-title
+          i.fas.fa-users.mr-2
+          | Danh sách người thuê
+        button.btn.btn-primary
+          i.fas.fa-plus.mr-2
+          | Thêm người thuê
+      
+      .table-responsive.user-table-wrapper
+        table.table.table-hover.user-table
+          thead.table-header-bg
+            tr
+              th Tên khách hàng
+              th CCCD/CMND
+              th Số điện thoại
+              th Giới tính
+              th Ngày sinh
+              th Email
+              th Địa chỉ
+              th Ngày tạo
+              th Thao tác
+          tbody
+            if userList && userList.length > 0
+              each user in userList
+                tr
+                  td
+                    .user-info
+                      i.fas.fa-user-circle.user-avatar.mr-2
+                      span= user.HoTen
+                  td= user.CCCD
+                  td= user.SDT
+                  td
+                    if user.GioiTinh === 'Nam'
+                      span.badge.badge-primary Nam
+                    else
+                      span.badge.badge-danger Nữ
+                  td= new Date(user.NgaySinh).toLocaleDateString('vi-VN')
+                  td= user.Email || '-'
+                  td= user.DiaChi || '-'
+                  td= new Date(user.createdAt).toLocaleDateString('vi-VN')
+                  td
+                    .action-buttons
+                      button.btn.btn-sm.btn-info
+                        i.fas.fa-edit
+                      button.btn.btn-sm.btn-danger
+                        i.fas.fa-trash
+            else
+              tr
+                td.text-center(colspan="9")
+                  p Không có người thuê nào
+    
+    // Section 2: Danh sách phòng và cư dân
+    .rooms-section
+      .section-header.mb-4
+        h2.section-title
+          i.fas.fa-door-open.mr-2
+          | Phòng và cư dân
+      
+      if roomListWithUsers && roomListWithUsers.length > 0
+        .rooms-grid
+          - let currentRoom = null
+          - let roomCards = {}
+          - roomListWithUsers.forEach(item => {
+          -   if (!roomCards[item.MaPhong]) {
+          -     roomCards[item.MaPhong] = []
+          -   }
+          -   roomCards[item.MaPhong].push(item)
+          - })
+          
+          each roomKey in Object.keys(roomCards)
+            - let roomData = roomCards[roomKey]
+            - let firstRecord = roomData[0]
+            .room-card(data-ma-phong=firstRecord.MaPhong data-ma-hop-dong=firstRecord.MaHopDong)
+              .room-header
+                .room-title
+                  h4.room-name= firstRecord.TenPhong
+                  span.room-house-name= firstRecord.TenNha
+                span.room-tenant-count
+                  i.fas.fa-users.mr-1
+                  | #{firstRecord.soNguoiO} người ở
+              
+              .room-body
+                .room-info-grid
+                  .info-row
+                    label.info-label Mã hợp đồng:
+                    span.info-value= firstRecord.MaHopDong
+                
+                .residents-section
+                  h5.residents-title
+                    i.fas.fa-users-cog.mr-2
+                    | Danh sách cư dân
+                  
+                  .residents-table-wrapper
+                    table.table.table-sm.residents-table
+                      thead
+                        tr
+                          th Tên cư dân
+                          th CCCD
+                          th Số điện thoại
+                          th Ngày sinh
+                          th Vai trò
+                          th Ngày vào ở
+                          th Giới tính
+                      tbody
+                        each resident in roomData
+                          tr
+                            td
+                              .resident-name
+                                i.fas.fa-user-circle.resident-avatar.mr-2
+                                span= resident.TenCuDan
+                            td= resident.CCCD
+                            td= resident.SDT
+                            td= new Date(resident.NgaySinh).toLocaleDateString('vi-VN')
+                            td
+                              if resident.VaiTro === 'DaiDien'
+                                span.badge.badge-warning.badge-role Người đại diện
+                              else
+                                span.badge.badge-light.badge-role Thành viên
+                            td= new Date(resident.NgayVaoO).toLocaleDateString('vi-VN')
+                            td
+                              if resident.GioiTinh === 'Nam'
+                                span.gender-badge.male Nam
+                              else
+                                span.gender-badge.female Nữ
+                  
+                  .room-actions.mt-3
+                    button.btn.btn-sm.btn-warning
+                      i.fas.fa-edit.mr-1
+                      | Chỉnh sửa
+                    button.btn.btn-sm.btn-success 
+                      i.fas.fa-user-plus.mr-1
+                      | Thêm cư dân
+      else
+        .alert.alert-info
+          i.fas.fa-info-circle.mr-2
+          | Không có phòng nào với cư dân
+  #addUserModal.modal.fade(tabindex="-1" role="dialog" aria-labelledby="addUserModalLabel" aria-hidden="true")
+    .modal-dialog.modal-lg(role="document")
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5#addUserModalLabel.modal-title
+            i.fas.fa-user-plus.mr-2
+            | Thêm người thuê mới
+          button.close.text-white(type="button" data-dismiss="modal" aria-label="Close")
+            span(aria-hidden="true") &times;
+        
+        .modal-body
+          form#addUserForm(method="POST" action="/users/create")
+            .form-row
+              .form-group.col-md-6
+                label(for="CCCD") CCCD/CMND
+                input#CCCD.form-control(type="text" name="CCCD" placeholder="Nhập CCCD/CMND" required)
+                small.form-text.text-muted CCCD/CMND không được trùng
+              
+              .form-group.col-md-6
+                label(for="HoTen") Họ tên
+                input#HoTen.form-control(type="text" name="HoTen" placeholder="Nhập họ tên đầy đủ" required)
+            
+            .form-row
+              .form-group.col-md-6
+                label(for="GioiTinh") Giới tính
+                select#GioiTinh.form-control(name="GioiTinh" required)
+                  option(value="") -- Chọn giới tính --
+                  option(value="Nam") Nam
+                  option(value="Nữ") Nữ
+              
+              .form-group.col-md-6
+                label(for="NgaySinh") Ngày sinh
+                input#NgaySinh.form-control(type="date" name="NgaySinh" required)
+            
+            .form-row
+              .form-group.col-md-6
+                label(for="SDT") Số điện thoại
+                input#SDT.form-control(type="tel" name="SDT" placeholder="Nhập số điện thoại" required pattern="[0-9]{10,11}")
+              
+              .form-group.col-md-6
+                label(for="Email") Email
+                input#Email.form-control(type="email" name="Email" placeholder="Nhập email")
+            
+            .form-group
+              label(for="DiaChi") Địa chỉ
+              textarea#DiaChi.form-control(name="DiaChi" rows="2" placeholder="Nhập địa chỉ")
+        
+        .modal-footer
+          button.btn.btn-secondary(type="button" data-dismiss="modal")
+            i.fas.fa-times.mr-1
+            | Hủy
+          button#btnAddUser.btn.btn-primary(type="button")
+            i.fas.fa-save.mr-1
+            | Thêm người thuê
+
+  #addResidentModal.modal.fade(tabindex="-1" role="dialog" aria-labelledby="addResidentModalLabel" aria-hidden="true")
+    .modal-dialog.modal-lg(role="document")
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5#addResidentModalLabel.modal-title
+            i.fas.fa-user-plus.mr-2
+            | Thêm cư dân vào phòng
+          button.close.text-white(type="button" data-dismiss="modal" aria-label="Close")
+            span(aria-hidden="true") &times;
+        
+        .modal-body
+          .alert.alert-info
+            i.fas.fa-info-circle.mr-2
+            strong Phòng hiện tại: 
+            span#currentRoomName
+          
+          form#addResidentForm(method="POST" action="/users/add-resident")
+            input#roomMaPhong(type="hidden" name="MaPhong")
+            input#roomMaHopDong(type="hidden" name="MaHopDong")
+            
+            .form-row
+              .form-group.col-md-6
+                label(for="existingUser") Chọn người từ danh sách
+                select#existingUser.form-control(name="MaNguoiThue" required)
+                  option(value="") -- Chọn người thuê --
+                  if availableUsers && availableUsers.length > 0
+                    each user in availableUsers
+                      option(value=user.MaNguoiThue data-cccd=user.CCCD data-phone=user.SDT data-birth=user.NgaySinh)= user.HoTen
+                  else
+                    option(value="" disabled) Tất cả người thuê đều là cư dân
+              
+              .form-group.col-md-6
+                label(for="residentRole") Vai trò
+                select#residentRole.form-control(name="VaiTro" required)
+                  option(value="ThanhVien" selected) Thành viên
+                  option(value="DaiDien") Người đại diện
+            
+            .form-row
+              .form-group.col-md-6
+                label(for="ngayVaoO") Ngày vào ở
+                input#ngayVaoO.form-control(type="date" name="NgayVaoO" required)
+              
+              .form-group.col-md-6
+                label(for="residentPhone") Số điện thoại
+                input#residentPhone.form-control(type="tel" name="residentPhone" readonly)
+            
+            .form-row
+              .form-group.col-md-6
+                label(for="residentCCCD") CCCD/CMND
+                input#residentCCCD.form-control(type="text" name="residentCCCD" readonly)
+              
+              .form-group.col-md-6
+                label(for="residentBirth") Ngày sinh
+                input#residentBirth.form-control(type="text" name="residentBirth" readonly)
+            
+        
+        .modal-footer
+          button.btn.btn-secondary(type="button" data-dismiss="modal")
+            i.fas.fa-times.mr-1
+            | Hủy
+          button.btn.btn-success(type="submit" form="addResidentForm")
+            i.fas.fa-save.mr-1
+            | Thêm cư dân

@@ -160,7 +160,6 @@ const phongSelect = document.getElementById("maPhong");
 console.log(phongSelect);
 if(phongSelect){
     phongSelect.addEventListener("change",()=>{
-        console.log("run");
         const selectedOption = phongSelect.value;
         const selected = phongSelect.options[phongSelect.selectedIndex];
         const price = selected.getAttribute("data-gia");
@@ -738,3 +737,125 @@ if (btnSaveInvoice) {
         form.submit();
     });
 }
+
+// ===== USERS PAGE FUNCTIONALITY =====
+
+// Add User Button
+const btnAddUserModal = document.querySelector(".users-section .btn-primary");
+if (btnAddUserModal) {
+    btnAddUserModal.addEventListener("click", () => {
+        document.getElementById("addUserForm").reset();
+        $('#addUserModal').modal('show');
+    });
+}
+
+// Add User Form Submit
+const btnAddUser = document.getElementById("btnAddUser");
+if (btnAddUser) {
+    btnAddUser.addEventListener("click", () => {
+        const CCCD = document.getElementById("CCCD").value.trim();
+        const HoTen = document.getElementById("HoTen").value.trim();
+        const GioiTinh = document.getElementById("GioiTinh").value.trim();
+        const NgaySinh = document.getElementById("NgaySinh").value.trim();
+        const SDT = document.getElementById("SDT").value.trim();
+        const Email = document.getElementById("Email").value.trim();
+        const DiaChi = document.getElementById("DiaChi").value.trim();
+
+        // Validation
+        if (!CCCD || !HoTen || !GioiTinh || !NgaySinh || !SDT) {
+            alert("Vui lòng điền đầy đủ các trường bắt buộc");
+            return;
+        }
+
+        // Validate CCCD format (10-20 characters)
+        if (CCCD.length < 10 || CCCD.length > 20) {
+            alert("CCCD/CMND phải từ 10-20 ký tự");
+            return;
+        }
+
+        // Validate phone number (10-11 digits)
+        if (!/^[0-9]{10,11}$/.test(SDT)) {
+            alert("Số điện thoại phải có 10-11 chữ số");
+            return;
+        }
+
+        // Validate email if provided
+        if (Email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(Email)) {
+            alert("Email không hợp lệ");
+            return;
+        }
+
+        // Validate date of birth (not in the future)
+        const birthDate = new Date(NgaySinh);
+        if (birthDate > new Date()) {
+            alert("Ngày sinh không thể là ngày trong tương lai");
+            return;
+        }
+
+        document.getElementById("addUserForm").submit();
+    });
+}
+
+// Room Actions - Edit, Add Resident
+const roomEditBtns = document.querySelectorAll(".room-actions .btn-warning");
+const roomAddResidentBtns = document.querySelectorAll(".room-actions .btn-success");
+
+roomEditBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+        alert("Chức năng chỉnh sửa đang phát triển");
+    });
+});
+
+roomAddResidentBtns.forEach(btn => {
+    btn.addEventListener("click", (e) => {
+        const roomCard = e.target.closest('.room-card');
+        const roomName = roomCard.querySelector('.room-name').textContent.trim();
+        const roomHouse = roomCard.querySelector('.room-house-name').textContent.trim();
+        const maPhong = roomCard.getAttribute('data-ma-phong');
+        const maHopDong = roomCard.getAttribute('data-ma-hop-dong');
+        
+        // Reset form
+        document.getElementById("addResidentForm").reset();
+        document.getElementById("currentRoomName").textContent = roomName + ' (' + roomHouse + ')';
+        document.getElementById("roomMaPhong").value = maPhong;
+        document.getElementById("roomMaHopDong").value = maHopDong;
+        
+        $('#addResidentModal').modal('show');
+    });
+});
+
+// Add Resident - Select user from dropdown
+const existingUserSelect = document.getElementById("existingUser");
+if (existingUserSelect) {
+    existingUserSelect.addEventListener("change", (e) => {
+        const selectedOption = e.target.options[e.target.selectedIndex];
+        
+        if (selectedOption.value) {
+            document.getElementById("residentPhone").value = selectedOption.dataset.phone || '';
+            document.getElementById("residentCCCD").value = selectedOption.dataset.cccd || '';
+            document.getElementById("residentBirth").value = selectedOption.dataset.birth ? new Date(selectedOption.dataset.birth).toLocaleDateString('vi-VN') : '';
+        } else {
+            document.getElementById("residentPhone").value = '';
+            document.getElementById("residentCCCD").value = '';
+            document.getElementById("residentBirth").value = '';
+        }
+    });
+}
+
+// User Action Buttons
+const userEditBtns = document.querySelectorAll(".user-table .btn-info");
+const userDeleteBtns = document.querySelectorAll(".user-table .btn-danger");
+
+userEditBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+        alert("Chức năng chỉnh sửa người thuê đang phát triển");
+    });
+});
+
+userDeleteBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+        if (confirm("Bạn chắc chắn muốn xóa người thuê này?")) {
+            alert("Chức năng xóa đang phát triển");
+        }
+    });
+});

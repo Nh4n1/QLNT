@@ -137,6 +137,7 @@ export const create = async (req, res) => {
             transaction: t 
         });
         await t.commit();
+        
 
         req.flash('success', 'Tạo hợp đồng thành công!');
         res.redirect('/contracts');
