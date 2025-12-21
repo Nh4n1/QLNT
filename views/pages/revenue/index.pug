@@ -1,0 +1,302 @@
+extends ../../layouts/default.pug
+include ../../mixins/alert.pug
+block main 
+    .container-fluid.my-4
+        +alert-success(3000)
+        +alert-error(3000)
+
+        .header-section.mb-4
+            .d-flex.justify-content-between.align-items-center.flex-wrap
+                h1.page-title Báo cáo doanh thu
+                
+                //- Bộ lọc tháng/năm
+                form.filter-form.d-flex.align-items-center.gap-2(method='GET', action='/revenue')
+                    select.form-control.filter-select(name='month', style='width: 130px;')
+                        each m in months
+                            option(value=m.value, selected=(m.value === filters.month))= m.label
+                    select.form-control.filter-select(name='year', style='width: 100px;')
+                        each y in years
+                            option(value=y, selected=(y === filters.year))= y
+                    button.btn.btn-primary(type='submit')
+                        i.fas.fa-filter.mr-1
+                        | Lọc
+
+        //- Thống kê tổng quan
+        .stats-grid.mb-4
+            .stat-card.stat-revenue
+                .stat-icon
+                    i.fas.fa-money-bill-wave
+                .stat-content
+                    .stat-label Tổng doanh thu tháng
+                    .stat-value= new Intl.NumberFormat('vi-VN').format(stats.tongDoanhThu) + ' ₫'
+            
+            .stat-card.stat-invoices
+                .stat-icon
+                    i.fas.fa-file-invoice-dollar
+                .stat-content
+                    .stat-label Hóa đơn đã thu
+                    .stat-value= stats.soHoaDonDaThu
+                    .stat-suffix hóa đơn
+
+            .stat-card.stat-debt
+                .stat-icon
+                    i.fas.fa-exclamation-triangle
+                .stat-content
+                    .stat-label Tổng tiền còn nợ
+                    .stat-value= new Intl.NumberFormat('vi-VN').format(stats.tongConNo) + ' ₫'
+
+            .stat-card.stat-rooms
+                .stat-icon
+                    i.fas.fa-door-open
+                .stat-content
+                    .stat-label Phòng đang cho thuê
+                    .stat-value= stats.soPhongChoThue
+                    .stat-suffix phòng
+
+        //- Danh sách phiếu thu
+        .card.receipts-card
+            .card-header
+                h5.mb-0
+                    i.fas.fa-receipt.mr-2
+                    | Danh sách phiếu thu tháng #{filters.month}/#{filters.year}
+            .card-body.p-0
+                .table-responsive
+                    table.table.table-hover.receipts-table.mb-0
+                        thead
+                            tr
+                                th(style='width: 8%') Mã PT
+                                th(style='width: 12%') Ngày thu
+                                th(style='width: 12%') Phòng
+                                th(style='width: 18%') Khách thuê
+                                th.text-right(style='width: 15%') Số tiền
+                                th(style='width: 12%') Hình thức
+                                th(style='width: 10%') Mã HĐ
+                                th(style='width: 13%') Ghi chú
+                        tbody
+                            if phieuThuList && phieuThuList.length > 0
+                                each pt in phieuThuList
+                                    tr
+                                        td
+                                            span.receipt-code= 'PT' + String(pt.MaPhieuThu).padStart(5, '0')
+                                        td
+                                            span.receipt-date= new Date(pt.NgayThu).toLocaleDateString('vi-VN')
+                                        td
+                                            span.receipt-room= pt.TenPhong
+                                        td
+                                            span.receipt-tenant= pt.TenKhachThue
+                                        td.text-right
+                                            span.receipt-amount= new Intl.NumberFormat('vi-VN').format(pt.SoTienThu) + ' ₫'
+                                        td
+                                            - const hinhThucClass = pt.HinhThuc === 'TienMat' ? 'badge-cash' : 'badge-transfer'
+                                            - const hinhThucText = pt.HinhThuc === 'TienMat' ? 'Tiền mặt' : 'Chuyển khoản'
+                                            span(class='payment-badge ' + hinhThucClass)= hinhThucText
+                                        td
+                                            a.invoice-link(href='/invoices/details/' + pt.MaHoaDon)= pt.MaHoaDon
+                                        td
+                                            span.receipt-note= pt.GhiChu || '—'
+                            else
+                                tr
+                                    td.text-center(colspan='8')
+                                        .empty-state.py-4
+                                            i.fas.fa-inbox.fa-3x.text-muted.mb-3
+                                            p.text-muted.mb-0 Không có phiếu thu nào trong tháng #{filters.month}/#{filters.year}
+
+        //- Tổng kết
+        //- if phieuThuList && phieuThuList.length > 0
+        //-     .summary-section.mt-3
+        //-         .summary-content
+        //-             span.summary-label Tổng cộng #{phieuThuList.length} phiếu thu:
+        //-             span.summary-value= new Intl.NumberFormat('vi-VN').format(stats.tongDoanhThu) + ' ₫'
+
+    style.
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+        }
+        .stat-revenue { border-left-color: #1e8449; }
+        .stat-invoices { border-left-color: #3498db; }
+        .stat-debt { border-left-color: #e74c3c; }
+        .stat-rooms { border-left-color: #9b59b6; }
+        
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .stat-revenue .stat-icon { background: rgba(30,132,73,0.1); color: #1e8449; }
+        .stat-invoices .stat-icon { background: rgba(52,152,219,0.1); color: #3498db; }
+        .stat-debt .stat-icon { background: rgba(231,76,60,0.1); color: #e74c3c; }
+        .stat-rooms .stat-icon { background: rgba(155,89,182,0.1); color: #9b59b6; }
+        
+        .stat-label {
+            font-size: 13px;
+            color: #718096;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a202c;
+        }
+        .stat-suffix {
+            font-size: 13px;
+            color: #718096;
+            font-weight: 500;
+        }
+        
+        .filter-form {
+            gap: 10px;
+        }
+        .filter-select {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .filter-select:focus {
+            border-color: #1e8449;
+            box-shadow: 0 0 0 3px rgba(30,132,73,0.15);
+        }
+        
+        .receipts-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+        .receipts-card .card-header {
+            background: linear-gradient(135deg, #1e8449 0%, #155934 100%);
+            color: white;
+            padding: 16px 24px;
+            border: none;
+        }
+        .receipts-table thead {
+            background: #f8f9fa;
+        }
+        .receipts-table thead th {
+            padding: 14px 16px;
+            font-weight: 700;
+            color: #4a5568;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .receipts-table tbody tr {
+            transition: all 0.2s ease;
+        }
+        .receipts-table tbody tr:hover {
+            background: #f8fbff;
+        }
+        .receipts-table td {
+            padding: 14px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .receipt-code {
+            font-weight: 700;
+            color: #1e8449;
+        }
+        .receipt-room {
+            font-weight: 600;
+            color: #1a202c;
+        }
+        .receipt-tenant {
+            color: #4a5568;
+        }
+        .receipt-amount {
+            font-weight: 700;
+            color: #1e8449;
+            font-size: 15px;
+        }
+        .receipt-note {
+            color: #718096;
+            font-size: 13px;
+        }
+        
+        .payment-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-cash {
+            background: #d4edda;
+            color: #155724;
+        }
+        .badge-transfer {
+            background: #cce5ff;
+            color: #004085;
+        }
+        
+        .invoice-link {
+            color: #3498db;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .invoice-link:hover {
+            color: #1e8449;
+            text-decoration: underline;
+        }
+        
+        .summary-section {
+            background: linear-gradient(135deg, #1e8449 0%, #155934 100%);
+            border-radius: 10px;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .summary-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .summary-label {
+            color: rgba(255,255,255,0.9);
+            font-weight: 500;
+        }
+        .summary-value {
+            color: #ffd700;
+            font-size: 22px;
+            font-weight: 700;
+        }
+        
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .filter-form {
+                flex-wrap: wrap;
+                width: 100%;
+                margin-top: 15px;
+            }
+        }
