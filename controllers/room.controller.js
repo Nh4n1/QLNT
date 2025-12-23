@@ -1,41 +1,27 @@
 import { where } from "sequelize";
 import sequelize from "../config/database.js"
 import RentHouse from "../models/rent-house.model.js";
-import Room from "../models/room.model.js"
+import { RoomModel } from "../models/room.model.js"
 
 export const index = async (req, res) => {
-    const roomList = await sequelize.query(
-    `SELECT 
-        P.MaPhong,
-        P.TenPhong,
-        P.TrangThai AS TrangThaiPhong,
-        NT.HoTen AS TenKhachHang,
-        NT.SDT AS SoDienThoai,
-        P.GiaThueHienTai,
-        HD.TienCoc,
-        COALESCE(HD.GiaThueChot, P.GiaThueHienTai) AS GiaHienThi,
-        HD.NgayKetThuc
-    FROM PHONG_TRO P
-    LEFT JOIN HOP_DONG HD 
-        ON P.MaPhong = HD.MaPhong 
-        AND HD.TrangThai = 'ConHieuLuc' 
-        AND HD.deleted = 0
-    LEFT JOIN NGUOI_THUE NT 
-        ON HD.MaNguoiThue = NT.MaNguoiThue 
-        AND NT.deleted = 0
-    WHERE P.deleted = 0
-    ORDER BY P.MaPhong ASC;`
-    );
-    const rentHouses= await RentHouse.findAll(
-       { deleted: false, raw: true }
+    try {
+        // Gọi Model để lấy danh sách phòng
+        const roomList = await RoomModel.getAllRoomsWithContracts();
         
-    );
-  
-    res.render('pages/rooms/index', {
-        rooms: roomList[0],
-        rentHouses: rentHouses,
-        messages: req.flash()
-    });
+        const rentHouses= await RentHouse.findAll(
+           { deleted: false, raw: true }
+        );
+      
+        res.render('pages/rooms/index', {
+            rooms: roomList,
+            rentHouses: rentHouses,
+            messages: req.flash()
+        });
+    } catch (error) {
+        console.error('Lỗi tải trang phòng:', error);
+        req.flash('error', 'Có lỗi xảy ra!');
+        res.redirect('/');
+    }
 }
 
 //[POST] /rooms
@@ -52,16 +38,18 @@ export const create = async (req, res) => {
             req.flash('error', 'Vui lòng điền tên phòng');
             return res.redirect('/rooms');
         }
-        // Create new room
+
+        // Tạo ID phòng
         const timestamp = Date.now().toString().slice(-5);
         const MaPhong = `P_${timestamp}`;
-        const newRoom = await Room.create({
-            MaPhong: MaPhong,
-            MaNha: MaNha,
-            TenPhong: TenPhong,
+
+        // Gọi Model để tạo phòng
+        await RoomModel.createRoom({
+            MaPhong,
+            MaNha,
+            TenPhong,
             GiaThueHienTai: GiaThueHienTai || 0,
-            SoNguoiToiDa: SoNguoiToiDa || 1,
-            TrangThai: 'ConTrong'
+            SoNguoiToiDa: SoNguoiToiDa || 1
         });
 
         req.flash('success', 'Thêm phòng trọ thành công!');

@@ -15,6 +15,7 @@
 import {DataTypes} from 'sequelize';
 import sequelize from '../config/database.js';
 
+// Sequelize Model (giữ lại cho tương thích ngược)
 const Room = sequelize.define('Room',{
     MaPhong:{
         type: DataTypes.STRING(20),
@@ -54,5 +55,58 @@ const Room = sequelize.define('Room',{
     timestamps: true,
     paranoid: false,
 })
+
+// ============================================
+// ROOM MODEL - DAL (Data Access Layer)
+// ============================================
+
+export class RoomModel {
+    /**
+     * Lấy danh sách tất cả phòng với thông tin hợp đồng
+     */
+    static async getAllRoomsWithContracts() {
+        const [roomList] = await sequelize.query(
+        `SELECT 
+            P.MaPhong,
+            P.TenPhong,
+            P.TrangThai AS TrangThaiPhong,
+            NT.HoTen AS TenKhachHang,
+            NT.SDT AS SoDienThoai,
+            P.GiaThueHienTai,
+            HD.TienCoc,
+            COALESCE(HD.GiaThueChot, P.GiaThueHienTai) AS GiaHienThi,
+            HD.NgayKetThuc
+        FROM PHONG_TRO P
+        LEFT JOIN HOP_DONG HD 
+            ON P.MaPhong = HD.MaPhong 
+            AND HD.TrangThai = 'ConHieuLuc' 
+            AND HD.deleted = 0
+        LEFT JOIN NGUOI_THUE NT 
+            ON HD.MaNguoiThue = NT.MaNguoiThue 
+            AND NT.deleted = 0
+        WHERE P.deleted = 0
+        ORDER BY P.MaPhong ASC;`
+        );
+        return roomList;
+    }
+
+    /**
+     * Tạo phòng mới
+     */
+    static async createRoom(roomData) {
+        const { MaPhong, MaNha, TenPhong, GiaThueHienTai, SoNguoiToiDa } = roomData;
+
+        const newRoom = await Room.create({
+            MaPhong: MaPhong,
+            MaNha: MaNha,
+            TenPhong: TenPhong,
+            GiaThueHienTai: GiaThueHienTai || 0,
+            SoNguoiToiDa: SoNguoiToiDa || 1,
+            TrangThai: 'ConTrong'
+        });
+
+        return newRoom;
+    }
+}
 
 export default Room;
