@@ -12,6 +12,7 @@ block main
                     select.form-control.filter-status(id='filterInvoiceStatus', style='max-width: 180px; margin-right: 10px;')
                         option(value='') -- Tất cả --
                         option(value='ChuaThanhToan') Chưa thanh toán
+                        option(value='ThanhToanMotPhan') Thanh toán một phần
                         option(value='DaThanhToan') Đã thanh toán
                     button.btn.btn-success#btnNewInvoice(type='button')
                         i.fas.fa-plus.me-2
@@ -46,9 +47,13 @@ block main
                                 td
                                     .invoice-total= new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(invoice.TongTien)
                                 td
-                                    - const isPaid = invoice.TrangThai === 'DaThanhToan'
-                                    span(class='badge ' + (isPaid ? 'badge-success' : 'badge-warning'))
-                                        = isPaid ? 'Đã thanh toán' : 'Chưa thanh toán'
+                                    - const status = invoice.TrangThai
+                                    if status === 'DaThanhToan'
+                                        span.badge.badge-success Đã thanh toán
+                                    else if status === 'ThanhToanMotPhan'
+                                        span.badge.badge-info Thanh toán một phần
+                                    else
+                                        span.badge.badge-warning Chưa thanh toán
                                 td
                                     .invoice-actions
                                         a.btn.btn-sm.btn-outline-primary(href='/invoices/details/' + invoice.MaHoaDon, title='Chi tiết')
