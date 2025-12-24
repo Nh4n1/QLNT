@@ -53,6 +53,64 @@ const Room = sequelize.define('Room',{
     tableName: 'phong_tro',
     timestamps: true,
     paranoid: false,
-})
+});
+
+/**
+ * Lấy danh sách phòng với thông tin hợp đồng và người thuê
+ */
+Room.getListWithContracts = async () => {
+    const [results] = await sequelize.query(`
+        SELECT 
+            P.MaPhong,
+            P.TenPhong,
+            P.TrangThai AS TrangThaiPhong,
+            NT.HoTen AS TenKhachHang,
+            NT.SDT AS SoDienThoai,
+            P.GiaThueHienTai,
+            HD.TienCoc,
+            COALESCE(HD.GiaThueChot, P.GiaThueHienTai) AS GiaHienThi,
+            HD.NgayKetThuc
+        FROM phong_tro P
+        LEFT JOIN hop_dong HD 
+            ON P.MaPhong = HD.MaPhong 
+            AND HD.TrangThai = 'ConHieuLuc' 
+            AND HD.deleted = 0
+        LEFT JOIN nguoi_thue NT 
+            ON HD.MaNguoiThue = NT.MaNguoiThue 
+            AND NT.deleted = 0
+        WHERE P.deleted = 0
+        ORDER BY P.MaPhong ASC
+    `);
+    return results;
+};
+
+/**
+ * Tạo phòng mới
+ */
+Room.createRoom = async (data) => {
+    const timestamp = Date.now().toString().slice(-5);
+    const MaPhong = `P_${timestamp}`;
+    
+    return await Room.create({
+        MaPhong,
+        MaNha: data.MaNha,
+        TenPhong: data.TenPhong,
+        GiaThueHienTai: data.GiaThueHienTai || 0,
+        SoNguoiToiDa: data.SoNguoiToiDa || 1,
+        TrangThai: 'ConTrong'
+    });
+};
+
+/**
+ * Lấy số phòng đang cho thuê
+ */
+Room.countRented = async () => {
+    return await Room.count({
+        where: {
+            TrangThai: 'DaChoThue',
+            deleted: false
+        }
+    });
+};
 
 export default Room;

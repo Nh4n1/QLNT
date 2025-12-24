@@ -1,91 +1,61 @@
 import sequelize from "../config/database.js";
+import Invoice from "../models/invoice.model.js";
+import InvoiceDetail from "../models/invoice-detail.model.js";
+import Receipt from "../models/receipt.model.js";
+import Service from "../models/service.model.js";
+import ServiceRegistration from "../models/service-registration.model.js";
 
 //[GET] /invoices
 export const index = async (req, res) => {
-    // Lấy danh sách phòng đang có hợp đồng còn hiệu lực
-    const [roomsList] = await sequelize.query(`SELECT 
-        pt.MaPhong,
-        pt.TenPhong,
-        pt.GiaThueHienTai,
-        nt.HoTen AS NguoiDaiDien,
-        nt.SDT,
-        hd.MaHopDong,
-        hd.NgayBatDau,
-        hd.NgayKetThuc,
-        hd.GiaThueChot
-    FROM phong_tro pt
-    INNER JOIN hop_dong hd ON pt.MaPhong = hd.MaPhong
-    INNER JOIN nguoi_thue nt ON hd.MaNguoiThue = nt.MaNguoiThue
-    WHERE 
-        hd.TrangThai = 'ConHieuLuc'
-        AND hd.deleted = 0
-        AND (hd.NgayKetThuc IS NULL OR hd.NgayKetThuc >= CURRENT_DATE);`);
-    
-    // Lấy danh sách dịch vụ đã đăng ký theo từng hợp đồng
-    const [registeredServices] = await sequelize.query(`SELECT 
-        dkdv.MaHopDong,
-        dkdv.MaDichVu,
-        dkdv.SoLuong,
-        dkdv.DonGiaChot,
-        dv.TenDichVu,
-        dv.DonGiaHienTai,
-        dv.DonViTinh
-    FROM dang_ky_dich_vu dkdv
-    INNER JOIN dich_vu dv ON dkdv.MaDichVu = dv.MaDichVu
-    WHERE dkdv.TrangThai = 1 
-        AND dkdv.deleted = 0
-        AND dv.deleted = 0;`);
+    try {
+        // ✅ Dùng model methods thay vì raw SQL
+        const roomsList = await Invoice.getRoomsForBilling();
+        const registeredServices = await Invoice.getRegisteredServices();
 
-    // Gắn dịch vụ vào từng phòng/hợp đồng và phân loại
-    const roomsWithServices = roomsList.map(room => {
-        const contractServices = registeredServices.filter(s => s.MaHopDong === room.MaHopDong);
-        
-        // Phân loại dịch vụ: Có chỉ số (điện, nước) và Không chỉ số
-        const servicesWithIndex = contractServices.filter(s => 
-            s.DonViTinh && (s.DonViTinh.toLowerCase().includes('kwh') || s.DonViTinh.toLowerCase().includes('m3') || s.DonViTinh.toLowerCase().includes('khối'))
-        );
-        const servicesWithoutIndex = contractServices.filter(s => 
-            !s.DonViTinh || (!s.DonViTinh.toLowerCase().includes('kwh') && !s.DonViTinh.toLowerCase().includes('m3') && !s.DonViTinh.toLowerCase().includes('khối'))
-        );
-        
-        return {
-            ...room,
-            services: contractServices,
-            servicesWithIndex,
-            servicesWithoutIndex
-        };
-    });
+        // Gắn dịch vụ vào từng phòng/hợp đồng và phân loại
+        const roomsWithServices = roomsList.map(room => {
+            const contractServices = registeredServices.filter(s => s.MaHopDong === room.MaHopDong);
+            
+            // Phân loại dịch vụ: Có chỉ số (điện, nước) và Không chỉ số
+            const servicesWithIndex = contractServices.filter(s => 
+                s.DonViTinh && (s.DonViTinh.toLowerCase().includes('kwh') || s.DonViTinh.toLowerCase().includes('m3') || s.DonViTinh.toLowerCase().includes('khối'))
+            );
+            const servicesWithoutIndex = contractServices.filter(s => 
+                !s.DonViTinh || (!s.DonViTinh.toLowerCase().includes('kwh') && !s.DonViTinh.toLowerCase().includes('m3') && !s.DonViTinh.toLowerCase().includes('khối'))
+            );
+            
+            return {
+                ...room,
+                services: contractServices,
+                servicesWithIndex,
+                servicesWithoutIndex
+            };
+        });
 
-    // Lấy danh sách hóa đơn hiện có
-    const [invoices] = await sequelize.query(`SELECT 
-        hdon.MaHoaDon,
-        hdon.NgayLap,
-        hdon.TuNgay,
-        hdon.DenNgay,
-        hdon.TongTien,
-        hdon.TrangThai,
-        pt.TenPhong,
-        nt.HoTen AS TenNguoiThue
-    FROM hoa_don hdon
-    INNER JOIN hop_dong hd ON hdon.MaHopDong = hd.MaHopDong
-    INNER JOIN phong_tro pt ON hd.MaPhong = pt.MaPhong
-    INNER JOIN nguoi_thue nt ON hd.MaNguoiThue = nt.MaNguoiThue
-    WHERE hdon.deleted = 0
-    ORDER BY hdon.NgayLap DESC;`);
+        // ✅ Lấy danh sách hóa đơn từ model
+        const invoices = await Invoice.getAllWithDetails();
 
-    res.render('pages/invoices/index', { 
-        title: 'Hóa đơn', 
-        messages: req.flash(),
-        rooms: roomsWithServices,
-        invoices
-    });
+        res.render('pages/invoices/index', { 
+            title: 'Hóa đơn', 
+            messages: req.flash(),
+            rooms: roomsWithServices,
+            invoices
+        });
+    } catch (error) {
+        console.error('Lỗi lấy danh sách hóa đơn:', error);
+        req.flash('error', 'Có lỗi xảy ra!');
+        res.render('pages/invoices/index', { 
+            title: 'Hóa đơn', 
+            messages: req.flash(),
+            rooms: [],
+            invoices: []
+        });
+    }
 }
 
 //[POST] /invoices/create
 export const create = async (req, res) => {
     console.log("data received:", req.body);
-
-
 
     const t = await sequelize.transaction();
     
@@ -101,70 +71,15 @@ export const create = async (req, res) => {
             indexServices 
         } = req.body;
 
-        // 1. Tạo mã hóa đơn mới theo format BILL + yyMM + 4 chữ số
-        const now = new Date();
-        const yy = String(now.getFullYear()).slice(-2);
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const prefix = `BILL${yy}${mm}`;
+        // ✅ 1. Tạo mã hóa đơn từ model
+        const MaHoaDon = await Invoice.generateId();
 
-        const [lastRows] = await sequelize.query(
-            `SELECT MaHoaDon FROM hoa_don WHERE MaHoaDon LIKE :like ORDER BY MaHoaDon DESC LIMIT 1`,
-            { replacements: { like: `${prefix}%` }, transaction: t }
-        );
-        let nextNum = 1;
-        if (lastRows && lastRows.length > 0 && lastRows[0].MaHoaDon) {
-            const last = lastRows[0].MaHoaDon;
-            const suffix = last.slice(prefix.length);
-            const parsed = parseInt(suffix, 10);
-            if (!isNaN(parsed)) nextNum = parsed + 1;
-        }
-        const MaHoaDon = prefix + String(nextNum).padStart(4, '0');
+        // ✅ 2. Lấy/tạo dịch vụ tiền phòng
+        const roomService = await Service.getRoomService(t);
+        const roomServiceId = roomService.MaDichVu;
 
-        // 2. INSERT vào bảng HOA_DON (không có cột TienPhong)
-        await sequelize.query(
-            `INSERT INTO hoa_don (MaHoaDon, MaHopDong, NgayLap, TuNgay, DenNgay, TongTien, TrangThai, deleted)
-             VALUES (:MaHoaDon, :MaHopDong, :NgayLap, :TuNgay, :DenNgay, :TongTien, 'ChuaThanhToan', 0)`,
-            {
-                replacements: { MaHoaDon, MaHopDong, NgayLap, TuNgay, DenNgay, TongTien },
-                transaction: t
-            }
-        );
-
-        // 3. INSERT tiền phòng vào CHI_TIET_HOA_DON (dịch vụ DV_PHONG)
-        await sequelize.query(
-            `INSERT INTO chi_tiet_hoa_don (MaHoaDon, MaDichVu, SoLuong, DonGiaLuuTru, ThanhTien)
-             VALUES (:MaHoaDon, '6', 1, :GiaPhong, :GiaPhong)`,
-            {
-                replacements: { MaHoaDon, GiaPhong },
-                transaction: t
-            }
-        );
-
-        // 4. INSERT chi tiết dịch vụ có chỉ số (điện, nước)
-        if (indexServices && indexServices.length > 0) {
-            for (const service of indexServices) {
-                const soLuong = parseFloat(service.ChiSoMoi) - parseFloat(service.ChiSoCu);
-                await sequelize.query(
-                    `INSERT INTO chi_tiet_hoa_don (MaHoaDon, MaDichVu, SoLuong, ChiSoCu, ChiSoMoi, DonGiaLuuTru, ThanhTien)
-                     VALUES (:MaHoaDon, :MaDichVu, :SoLuong, :ChiSoCu, :ChiSoMoi, :DonGiaLuuTru, :ThanhTien)`,
-                    {
-                        replacements: {
-                            MaHoaDon,
-                            MaDichVu: service.MaDichVu,
-                            SoLuong: soLuong,
-                            ChiSoCu: service.ChiSoCu,
-                            ChiSoMoi: service.ChiSoMoi,
-                            DonGiaLuuTru: service.DonGia,
-                            ThanhTien: service.ThanhTien
-                        },
-                        transaction: t
-                    }
-                );
-            }
-        }
-
-        // 4b. INSERT các dịch vụ không có chỉ số được chọn (ví dụ checkbox tên dạng dichVu_<id>)
-        // Tìm tất cả key dạng 'dichVu_<MaDichVu>' trong req.body
+        // ✅ 3. Chuẩn bị dịch vụ không có chỉ số được chọn
+        const otherServices = [];
         for (const key of Object.keys(req.body)) {
             const m = key.match(/^dichVu_(\d+)$/);
             if (!m) continue;
@@ -175,40 +90,43 @@ export const create = async (req, res) => {
                 continue;
             }
 
-            // Lấy thông tin đăng ký dịch vụ theo hợp đồng (nếu có)
-            const [[dk]] = await sequelize.query(
-                `SELECT SoLuong, DonGiaChot FROM dang_ky_dich_vu WHERE MaHopDong = :MaHopDong AND MaDichVu = :MaDichVu AND deleted = 0 LIMIT 1`,
-                { replacements: { MaHopDong, MaDichVu: maDichVu }, transaction: t }
-            );
+            // Lấy thông tin đăng ký dịch vụ theo hợp đồng
+            const registration = await ServiceRegistration.findOne({
+                where: { MaHopDong, MaDichVu: maDichVu, deleted: false }
+            });
 
             let soLuong = 1;
             let donGia = null;
-            if (dk) {
-                soLuong = dk.SoLuong != null ? dk.SoLuong : 1;
-                donGia = dk.DonGiaChot != null ? parseFloat(dk.DonGiaChot) : null;
+            
+            if (registration) {
+                soLuong = registration.SoLuong || 1;
+                donGia = registration.DonGiaChot ? parseFloat(registration.DonGiaChot) : null;
             }
 
-            // Nếu không có giá chốt trong đăng ký, lấy giá hiện tại từ dich_vu
+            // Nếu không có giá chốt, lấy giá hiện tại từ dich_vu
             if (donGia === null) {
-                const [dvRows] = await sequelize.query(
-                    `SELECT DonGiaHienTai FROM dich_vu WHERE MaDichVu = :MaDichVu AND deleted = 0 LIMIT 1`,
-                    { replacements: { MaDichVu: maDichVu }, transaction: t }
-                );
-                if (dvRows && dvRows.length > 0) donGia = parseFloat(dvRows[0].DonGiaHienTai || 0);
-                else donGia = 0;
+                const service = await Service.findByPk(maDichVu);
+                donGia = service ? parseFloat(service.DonGiaHienTai || 0) : 0;
             }
 
             const thanhTien = parseFloat(soLuong) * parseFloat(donGia || 0);
 
-            await sequelize.query(
-                `INSERT INTO chi_tiet_hoa_don (MaHoaDon, MaDichVu, SoLuong, DonGiaLuuTru, ThanhTien)
-                 VALUES (:MaHoaDon, :MaDichVu, :SoLuong, :DonGiaLuuTru, :ThanhTien)`,
-                {
-                    replacements: { MaHoaDon, MaDichVu: maDichVu, SoLuong: soLuong, DonGiaLuuTru: donGia, ThanhTien: thanhTien },
-                    transaction: t
-                }
-            );
+            otherServices.push({
+                MaDichVu: maDichVu,
+                SoLuong: soLuong,
+                DonGia: donGia,
+                ThanhTien: thanhTien
+            });
         }
+
+        // ✅ 4. Tạo hóa đơn với chi tiết từ model
+        await Invoice.createWithDetails(
+            { MaHoaDon, MaHopDong, NgayLap, TuNgay, DenNgay, TongTien, GiaPhong },
+            roomServiceId,
+            indexServices || [],
+            otherServices,
+            t
+        );
 
         await t.commit();
         req.flash('success', 'Tạo hóa đơn thành công!');
@@ -227,50 +145,15 @@ export const detail = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Lấy thông tin hóa đơn kèm tổng số tiền đã thu
-        const [[invoice]] = await sequelize.query(`
-            SELECT 
-                hdon.MaHoaDon,
-                hdon.NgayLap,
-                hdon.TuNgay,
-                hdon.DenNgay,
-                hdon.TongTien,
-                hdon.TrangThai,
-                hdong.MaHopDong,
-                hdong.GiaThueChot,
-                pt.TenPhong,
-                pt.MaPhong,
-                nt.HoTen,
-                nt.SDT,
-                nt.DiaChi,
-                COALESCE((SELECT SUM(SoTienThu) FROM PHIEU_THU WHERE MaHoaDon = hdon.MaHoaDon AND deleted = 0), 0) AS SoTienDaThu
-            FROM HOA_DON hdon
-            INNER JOIN HOP_DONG hdong ON hdon.MaHopDong = hdong.MaHopDong
-            INNER JOIN PHONG_TRO pt ON hdong.MaPhong = pt.MaPhong
-            INNER JOIN NGUOI_THUE nt ON hdong.MaNguoiThue = nt.MaNguoiThue
-            WHERE hdon.MaHoaDon = :id AND hdon.deleted = 0
-        `, { replacements: { id } });
+        // ✅ Dùng model methods
+        const invoice = await Invoice.getDetails(id);
 
         if (!invoice) {
             req.flash('error', 'Không tìm thấy hóa đơn!');
             return res.redirect('/invoices');
         }
 
-        // Lấy chi tiết hóa đơn
-        const [details] = await sequelize.query(`
-            SELECT 
-                ct.MaDichVu,
-                ct.SoLuong,
-                ct.ChiSoCu,
-                ct.ChiSoMoi,
-                ct.DonGiaLuuTru,
-                ct.ThanhTien,
-                dv.TenDichVu,
-                dv.DonViTinh
-            FROM CHI_TIET_HOA_DON ct
-            INNER JOIN DICH_VU dv ON ct.MaDichVu = dv.MaDichVu
-            WHERE ct.MaHoaDon = :id
-        `, { replacements: { id } });
+        const details = await InvoiceDetail.getByInvoice(id);
 
         res.render('pages/invoices/details', {
             title: `Chi tiết hóa đơn ${invoice.MaHoaDon}`,
@@ -294,11 +177,10 @@ export const payment = async (req, res) => {
     try {
         const { MaHoaDon, SoTienThu, HinhThuc, NgayThu, GhiChu } = req.body;
 
-        // 1. Kiểm tra hóa đơn tồn tại
-        const [[invoice]] = await sequelize.query(
-            `SELECT TongTien, TrangThai FROM hoa_don WHERE MaHoaDon = :MaHoaDon AND deleted = 0`,
-            { replacements: { MaHoaDon }, transaction: t }
-        );
+        // ✅ 1. Kiểm tra hóa đơn tồn tại - dùng model
+        const invoice = await Invoice.findOne({
+            where: { MaHoaDon, deleted: false }
+        });
 
         if (!invoice) {
             req.flash('error', 'Không tìm thấy hóa đơn!');
@@ -310,15 +192,10 @@ export const payment = async (req, res) => {
             return res.redirect(`/invoices/details/${MaHoaDon}`);
         }
 
-        // 2. Lấy tổng số tiền đã thu trước đó
-        const [[{ soTienDaThu }]] = await sequelize.query(
-            `SELECT COALESCE(SUM(SoTienThu), 0) AS soTienDaThu 
-             FROM phieu_thu WHERE MaHoaDon = :MaHoaDon AND deleted = 0`,
-            { replacements: { MaHoaDon }, transaction: t }
-        );
+        // ✅ 2. Lấy tổng số tiền đã thu từ model
+        const daThu = await Receipt.getTotalByInvoice(MaHoaDon);
 
         const tongTien = parseFloat(invoice.TongTien);
-        const daThu = parseFloat(soTienDaThu);
         const thuLanNay = parseFloat(SoTienThu);
         const tongSauThu = daThu + thuLanNay;
 
@@ -329,17 +206,16 @@ export const payment = async (req, res) => {
             return res.redirect(`/invoices/details/${MaHoaDon}`);
         }
 
-        // 4. INSERT phiếu thu mới (MaPhieuThu là INT AUTO_INCREMENT)
-        await sequelize.query(
-            `INSERT INTO phieu_thu (MaHoaDon, NgayThu, SoTienThu, HinhThuc, GhiChu, deleted)
-             VALUES (:MaHoaDon, :NgayThu, :SoTienThu, :HinhThuc, :GhiChu, 0)`,
-            {
-                replacements: { MaHoaDon, NgayThu, SoTienThu: thuLanNay, HinhThuc, GhiChu: GhiChu || null },
-                transaction: t
-            }
-        );
+        // ✅ 4. Tạo phiếu thu từ model
+        await Receipt.createReceipt({
+            MaHoaDon,
+            NgayThu,
+            SoTienThu: thuLanNay,
+            HinhThuc,
+            GhiChu: GhiChu || null
+        }, t);
 
-        // 5. Cập nhật trạng thái hóa đơn
+        // ✅ 5. Cập nhật trạng thái hóa đơn từ model
         let trangThaiMoi;
         if (tongSauThu >= tongTien) {
             trangThaiMoi = 'DaThanhToan';
@@ -349,10 +225,7 @@ export const payment = async (req, res) => {
             trangThaiMoi = 'ChuaThanhToan';
         }
 
-        await sequelize.query(
-            `UPDATE hoa_don SET TrangThai = :trangThaiMoi WHERE MaHoaDon = :MaHoaDon`,
-            { replacements: { trangThaiMoi, MaHoaDon }, transaction: t }
-        );
+        await Invoice.updateStatus(MaHoaDon, trangThaiMoi, t);
 
         await t.commit();
         
