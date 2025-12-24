@@ -1,22 +1,15 @@
 import sequelize from "../config/database.js"
-import { ServiceModel } from "../models/service.model.js"
 
 //[GET] /services
 export const index = async (req, res) => {
-    try {
-        // Gọi Model để lấy danh sách dịch vụ
-        const services = await ServiceModel.getAllServices();
-        
-        res.render('pages/services/index', { 
-            title: 'Services', 
-            services,
-            messages: req.flash()
-        });
-    } catch (error) {
-        console.error('Lỗi tải trang dịch vụ:', error);
-        req.flash('error', 'Có lỗi xảy ra!');
-        res.redirect('/');
-    }
+    const [services] = await sequelize.query(`
+       SELECT * FROM DICH_VU WHERE LoaiDichVu != 'TienPhong' AND deleted = 0 ORDER BY TenDichVu ASC
+    `);
+    res.render('pages/services/index', { 
+        title: 'Services', 
+        services,
+        messages: req.flash()
+    });
 }
 
 //[POST] /services - Thêm dịch vụ mới
@@ -29,8 +22,23 @@ export const create = async (req, res) => {
             return res.redirect('/services');
         }
         
-        // Gọi Model để tạo dịch vụ
-        await ServiceModel.createService({ TenDichVu, DonGiaHienTai, DonViTinh, LoaiDichVu });
+        const timestamp = Date.now().toString().slice(-5);
+        const MaDichVu = `DV_${timestamp}`;
+        
+        await sequelize.query(
+            `INSERT INTO DICH_VU (MaDichVu, TenDichVu, DonGiaHienTai, DonViTinh, LoaiDichVu, deleted)
+             VALUES (:MaDichVu, :TenDichVu, :DonGiaHienTai, :DonViTinh, :LoaiDichVu, 0)`,
+            {
+                replacements: {
+                    MaDichVu,
+                    TenDichVu,
+                    DonGiaHienTai: DonGiaHienTai || 0,
+                    DonViTinh: DonViTinh || '',
+                    LoaiDichVu: LoaiDichVu || 'KhongChiSo'
+                },
+                type: sequelize.QueryTypes.INSERT
+            }
+        );
         
         req.flash('success', 'Thêm dịch vụ thành công!');
         res.redirect('/services');
@@ -47,8 +55,25 @@ export const update = async (req, res) => {
         const { id } = req.params;
         const { TenDichVu, DonGiaHienTai, DonViTinh, LoaiDichVu } = req.body;
         
-        // Gọi Model để cập nhật dịch vụ
-        await ServiceModel.updateService(id, { TenDichVu, DonGiaHienTai, DonViTinh, LoaiDichVu });
+        await sequelize.query(
+            `UPDATE DICH_VU 
+             SET TenDichVu = :TenDichVu, 
+                 DonGiaHienTai = :DonGiaHienTai, 
+                 DonViTinh = :DonViTinh, 
+                 LoaiDichVu = :LoaiDichVu,
+                 updatedAt = NOW()
+             WHERE MaDichVu = :id`,
+            {
+                replacements: {
+                    id,
+                    TenDichVu,
+                    DonGiaHienTai: DonGiaHienTai || 0,
+                    DonViTinh: DonViTinh || '',
+                    LoaiDichVu: LoaiDichVu || 'KhongChiSo'
+                },
+                type: sequelize.QueryTypes.UPDATE
+            }
+        );
         
         req.flash('success', 'Cập nhật dịch vụ thành công!');
         res.redirect('/services');
@@ -64,8 +89,15 @@ export const remove = async (req, res) => {
     try {
         const { id } = req.params;
         
-        // Gọi Model để xóa dịch vụ
-        await ServiceModel.deleteService(id);
+        await sequelize.query(
+            `UPDATE DICH_VU 
+             SET deleted = 1, deletedAt = NOW(), updatedAt = NOW()
+             WHERE MaDichVu = :id`,
+            {
+                replacements: { id },
+                type: sequelize.QueryTypes.UPDATE
+            }
+        );
         
         req.flash('success', 'Xóa dịch vụ thành công!');
         res.redirect('/services');

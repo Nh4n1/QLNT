@@ -1,25 +1,74 @@
 import sequelize from "../config/database.js";
-import { UserModel } from "../models/user.model.js";
 
 export const index = async (req, res) => {
-    try {
-        // Gọi Models để lấy dữ liệu
-        const userList = await UserModel.getAllUsers();
-        const roomListWithUsers = await UserModel.getRoomsWithResidents();
-        const availableUsers = await UserModel.getAvailableUsers();
-        
-        res.render('pages/users/index', { 
-            title: 'User Management', 
-            userList: userList,
-            availableUsers: availableUsers,
-            roomListWithUsers,
-            messages: req.flash()
-        });
-    } catch (error) {
-        console.error('Lỗi tải trang người dùng:', error);
-        req.flash('error', 'Có lỗi xảy ra!');
-        res.redirect('/');
-    }
+    const [userList] = await sequelize.query('SELECT * FROM NGUOI_THUE WHERE deleted = 0');
+    const [roomListWithUsers] = await sequelize.query(`SELECT 
+    pt.MaPhong,
+    pt.TenPhong,
+    ntr.TenNha,             -- Tên tòa nhà để dễ phân biệt
+    hd.MaHopDong,
+    hd.soNguoiO,
+    
+    -- Thông tin cư dân
+    nt.HoTen AS TenCuDan,
+    nt.CCCD,
+    nt.SDT,
+    cd.VaiTro,              -- Ví dụ: Người đại diện, Thành viên
+    cd.NgayVaoO,
+    nt.NgaySinh,
+    nt.GioiTinh,
+    nt.DiaChi,
+    -- Trạng thái hợp đồng (để kiểm tra cho chắc)
+    hd.TrangThai AS TrangThaiHD
+
+FROM PHONG_TRO pt
+-- 1. Join lấy tên Nhà (Optional)
+JOIN NHA_TRO ntr ON pt.MaNha = ntr.MaNha
+
+-- 2. Join lấy Hợp Đồng đang hiệu lực
+JOIN HOP_DONG hd ON pt.MaPhong = hd.MaPhong
+
+-- 3. Join lấy danh sách Cư Dân thuộc hợp đồng đó
+JOIN CU_DAN cd ON hd.MaHopDong = cd.MaHopDong
+
+-- 4. Join lấy thông tin cá nhân của Cư Dân
+JOIN NGUOI_THUE nt ON cd.MaNguoiThue = nt.MaNguoiThue
+
+WHERE 
+    -- Điều kiện 1: Hợp đồng phải còn hiệu lực và chưa bị xóa
+    hd.deleted = FALSE 
+    AND hd.TrangThai = 'ConHieuLuc'
+    
+    -- Điều kiện 2: Cư dân chưa bị xóa khỏi hệ thống
+    AND cd.deleted = FALSE
+    
+    -- Điều kiện 3: Cư dân VẪN ĐANG Ở (Chưa có ngày rời đi hoặc ngày rời đi ở tương lai)
+    AND (cd.NgayRoiDi IS NULL OR cd.NgayRoiDi >= CURRENT_DATE)
+
+ORDER BY 
+    pt.TenPhong ASC, 
+    cd.VaiTro ASC;  `);
+    
+    // Lấy danh sách người thuê chưa là cư dân trong bất kỳ phòng nào
+    const [availableUsers] = await sequelize.query(`
+        SELECT nt.* 
+        FROM NGUOI_THUE nt
+        LEFT JOIN CU_DAN cd ON nt.MaNguoiThue = cd.MaNguoiThue
+          AND cd.deleted = FALSE
+          AND (cd.NgayRoiDi IS NULL OR cd.NgayRoiDi > CURRENT_DATE)
+        WHERE nt.deleted = FALSE
+          AND cd.MaNguoiThue IS NULL
+        ORDER BY nt.HoTen ASC
+    `);
+    
+    console.log(userList)
+    res.render('pages/users/index', { 
+        title: 'User Management', 
+        userList: userList,
+        availableUsers: availableUsers,
+        roomListWithUsers,
+        messages: req.flash()
+    });
 }
 
 // [POST] /users/create
@@ -27,16 +76,25 @@ export const create = async (req, res) => {
     const { CCCD, HoTen, GioiTinh, NgaySinh, SDT, Email, DiaChi } = req.body;
     
     try {
-        // Kiểm tra CCCD đã tồn tại
-        const existingUser = await UserModel.checkUserExistsByIdCard(CCCD);
+        // Check if CCCD already exists
+        const [existingUser] = await sequelize.query(
+            'SELECT * FROM NGUOI_THUE WHERE CCCD = ? AND deleted = 0',
+            { replacements: [CCCD] }
+        );
         
         if (existingUser.length > 0) {
             req.flash('error', 'CCCD/CMND này đã tồn tại trong hệ thống');
             return res.redirect('/users');
         }
         
-        // Gọi Model để tạo người dùng
-        await UserModel.createUser({ CCCD, HoTen, GioiTinh, NgaySinh, SDT, Email, DiaChi });
+        // Insert new user
+        await sequelize.query(
+            `INSERT INTO NGUOI_THUE (CCCD, HoTen, GioiTinh, NgaySinh, SDT, Email, DiaChi, deleted)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            {
+                replacements: [CCCD, HoTen, GioiTinh, NgaySinh, SDT, Email || null, DiaChi || null, 0]
+            }
+        );
         
         req.flash('success', `Thêm người thuê "${HoTen}" thành công`);
         res.redirect('/users');
@@ -58,29 +116,51 @@ export const addResident = async (req, res) => {
             return res.redirect('/users');
         }
         
-        // Kiểm tra cư dân tồn tại
-        const existingResident = await UserModel.checkResidentExists(MaNguoiThue);
+        // Check if person already is a resident in another active contract
+        const [existingResident] = await sequelize.query(
+            `SELECT * FROM CU_DAN 
+             WHERE MaNguoiThue = ? 
+             AND deleted = 0 
+             AND (NgayRoiDi IS NULL OR NgayRoiDi > CURRENT_DATE)`,
+            { replacements: [MaNguoiThue] }
+        );
         
         if (existingResident.length > 0) {
             req.flash('error', 'Người này hiện đã là cư dân trong phòng khác');
             return res.redirect('/users');
         }
         
-        // Kiểm tra hợp đồng tồn tại
-        const contractCheck = await UserModel.checkContractExists(MaHopDong, MaPhong);
+        // Check if contract exists and is active
+        const [contractCheck] = await sequelize.query(
+            `SELECT * FROM HOP_DONG 
+             WHERE MaHopDong = ? 
+             AND MaPhong = ?
+             AND deleted = 0
+             AND TrangThai = 'ConHieuLuc'`,
+            { replacements: [MaHopDong, MaPhong] }
+        );
         
         if (contractCheck.length === 0) {
             req.flash('error', 'Hợp đồng không tồn tại hoặc đã hết hiệu lực');
             return res.redirect('/users');
         }
         
-        // Thêm cư dân
-        await UserModel.addResident({ MaHopDong, MaNguoiThue, VaiTro, NgayVaoO });
+        // Insert new resident
+        await sequelize.query(
+            `INSERT INTO CU_DAN (MaHopDong, MaNguoiThue, VaiTro, NgayVaoO, deleted)
+             VALUES (?, ?, ?, ?, ?)`,
+            {
+                replacements: [MaHopDong, MaNguoiThue, VaiTro, NgayVaoO, 0]
+            }
+        );
         
-        // Lấy tên cư dân
-        const resident = await UserModel.getUserNameById(MaNguoiThue);
+        // Get resident name for response
+        const [resident] = await sequelize.query(
+            'SELECT HoTen FROM NGUOI_THUE WHERE MaNguoiThue = ?',
+            { replacements: [MaNguoiThue] }
+        );
         
-        req.flash('success', `Thêm cư dân "${resident.HoTen}" vào phòng thành công`);
+        req.flash('success', `Thêm cư dân "${resident[0].HoTen}" vào phòng thành công`);
         res.redirect('/users');
         
     } catch (error) {
