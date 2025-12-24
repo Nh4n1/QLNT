@@ -13,9 +13,9 @@ export const index = async (req, res) => {
         hd.NgayBatDau,
         hd.NgayKetThuc,
         hd.GiaThueChot
-    FROM PHONG_TRO pt
-    INNER JOIN HOP_DONG hd ON pt.MaPhong = hd.MaPhong
-    INNER JOIN NGUOI_THUE nt ON hd.MaNguoiThue = nt.MaNguoiThue
+    FROM phong_tro pt
+    INNER JOIN hop_dong hd ON pt.MaPhong = hd.MaPhong
+    INNER JOIN nguoi_thue nt ON hd.MaNguoiThue = nt.MaNguoiThue
     WHERE 
         hd.TrangThai = 'ConHieuLuc'
         AND hd.deleted = 0
@@ -30,8 +30,8 @@ export const index = async (req, res) => {
         dv.TenDichVu,
         dv.DonGiaHienTai,
         dv.DonViTinh
-    FROM DANG_KY_DICH_VU dkdv
-    INNER JOIN DICH_VU dv ON dkdv.MaDichVu = dv.MaDichVu
+    FROM dang_ky_dich_vu dkdv
+    INNER JOIN dich_vu dv ON dkdv.MaDichVu = dv.MaDichVu
     WHERE dkdv.TrangThai = 1 
         AND dkdv.deleted = 0
         AND dv.deleted = 0;`);
@@ -66,10 +66,10 @@ export const index = async (req, res) => {
         hdon.TrangThai,
         pt.TenPhong,
         nt.HoTen AS TenNguoiThue
-    FROM HOA_DON hdon
-    INNER JOIN HOP_DONG hd ON hdon.MaHopDong = hd.MaHopDong
-    INNER JOIN PHONG_TRO pt ON hd.MaPhong = pt.MaPhong
-    INNER JOIN NGUOI_THUE nt ON hd.MaNguoiThue = nt.MaNguoiThue
+    FROM hoa_don hdon
+    INNER JOIN hop_dong hd ON hdon.MaHopDong = hd.MaHopDong
+    INNER JOIN phong_tro pt ON hd.MaPhong = pt.MaPhong
+    INNER JOIN nguoi_thue nt ON hd.MaNguoiThue = nt.MaNguoiThue
     WHERE hdon.deleted = 0
     ORDER BY hdon.NgayLap DESC;`);
 
@@ -83,6 +83,10 @@ export const index = async (req, res) => {
 
 //[POST] /invoices/create
 export const create = async (req, res) => {
+    console.log("data received:", req.body);
+
+
+
     const t = await sequelize.transaction();
     
     try {
@@ -97,16 +101,28 @@ export const create = async (req, res) => {
             indexServices 
         } = req.body;
 
-        // 1. Tạo mã hóa đơn mới
-        const [[{ maxId }]] = await sequelize.query(
-            `SELECT COALESCE(MAX(CAST(SUBSTRING(MaHoaDon, 4) AS UNSIGNED)), 0) AS maxId FROM HOA_DON`,
-            { transaction: t }
+        // 1. Tạo mã hóa đơn mới theo format BILL + yyMM + 4 chữ số
+        const now = new Date();
+        const yy = String(now.getFullYear()).slice(-2);
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const prefix = `BILL${yy}${mm}`;
+
+        const [lastRows] = await sequelize.query(
+            `SELECT MaHoaDon FROM hoa_don WHERE MaHoaDon LIKE :like ORDER BY MaHoaDon DESC LIMIT 1`,
+            { replacements: { like: `${prefix}%` }, transaction: t }
         );
-        const MaHoaDon = `HD_${String(maxId + 1).padStart(5, '0')}`;
+        let nextNum = 1;
+        if (lastRows && lastRows.length > 0 && lastRows[0].MaHoaDon) {
+            const last = lastRows[0].MaHoaDon;
+            const suffix = last.slice(prefix.length);
+            const parsed = parseInt(suffix, 10);
+            if (!isNaN(parsed)) nextNum = parsed + 1;
+        }
+        const MaHoaDon = prefix + String(nextNum).padStart(4, '0');
 
         // 2. INSERT vào bảng HOA_DON (không có cột TienPhong)
         await sequelize.query(
-            `INSERT INTO HOA_DON (MaHoaDon, MaHopDong, NgayLap, TuNgay, DenNgay, TongTien, TrangThai, deleted)
+            `INSERT INTO hoa_don (MaHoaDon, MaHopDong, NgayLap, TuNgay, DenNgay, TongTien, TrangThai, deleted)
              VALUES (:MaHoaDon, :MaHopDong, :NgayLap, :TuNgay, :DenNgay, :TongTien, 'ChuaThanhToan', 0)`,
             {
                 replacements: { MaHoaDon, MaHopDong, NgayLap, TuNgay, DenNgay, TongTien },
@@ -116,8 +132,8 @@ export const create = async (req, res) => {
 
         // 3. INSERT tiền phòng vào CHI_TIET_HOA_DON (dịch vụ DV_PHONG)
         await sequelize.query(
-            `INSERT INTO CHI_TIET_HOA_DON (MaHoaDon, MaDichVu, SoLuong, DonGiaLuuTru, ThanhTien)
-             VALUES (:MaHoaDon, 'DV_PHONG', 1, :GiaPhong, :GiaPhong)`,
+            `INSERT INTO chi_tiet_hoa_don (MaHoaDon, MaDichVu, SoLuong, DonGiaLuuTru, ThanhTien)
+             VALUES (:MaHoaDon, '6', 1, :GiaPhong, :GiaPhong)`,
             {
                 replacements: { MaHoaDon, GiaPhong },
                 transaction: t
@@ -129,7 +145,7 @@ export const create = async (req, res) => {
             for (const service of indexServices) {
                 const soLuong = parseFloat(service.ChiSoMoi) - parseFloat(service.ChiSoCu);
                 await sequelize.query(
-                    `INSERT INTO CHI_TIET_HOA_DON (MaHoaDon, MaDichVu, SoLuong, ChiSoCu, ChiSoMoi, DonGiaLuuTru, ThanhTien)
+                    `INSERT INTO chi_tiet_hoa_don (MaHoaDon, MaDichVu, SoLuong, ChiSoCu, ChiSoMoi, DonGiaLuuTru, ThanhTien)
                      VALUES (:MaHoaDon, :MaDichVu, :SoLuong, :ChiSoCu, :ChiSoMoi, :DonGiaLuuTru, :ThanhTien)`,
                     {
                         replacements: {
@@ -145,6 +161,53 @@ export const create = async (req, res) => {
                     }
                 );
             }
+        }
+
+        // 4b. INSERT các dịch vụ không có chỉ số được chọn (ví dụ checkbox tên dạng dichVu_<id>)
+        // Tìm tất cả key dạng 'dichVu_<MaDichVu>' trong req.body
+        for (const key of Object.keys(req.body)) {
+            const m = key.match(/^dichVu_(\d+)$/);
+            if (!m) continue;
+            const maDichVu = m[1];
+
+            // Nếu đã có trong indexServices thì bỏ qua
+            if (Array.isArray(indexServices) && indexServices.some(s => String(s.MaDichVu) === String(maDichVu))) {
+                continue;
+            }
+
+            // Lấy thông tin đăng ký dịch vụ theo hợp đồng (nếu có)
+            const [[dk]] = await sequelize.query(
+                `SELECT SoLuong, DonGiaChot FROM dang_ky_dich_vu WHERE MaHopDong = :MaHopDong AND MaDichVu = :MaDichVu AND deleted = 0 LIMIT 1`,
+                { replacements: { MaHopDong, MaDichVu: maDichVu }, transaction: t }
+            );
+
+            let soLuong = 1;
+            let donGia = null;
+            if (dk) {
+                soLuong = dk.SoLuong != null ? dk.SoLuong : 1;
+                donGia = dk.DonGiaChot != null ? parseFloat(dk.DonGiaChot) : null;
+            }
+
+            // Nếu không có giá chốt trong đăng ký, lấy giá hiện tại từ dich_vu
+            if (donGia === null) {
+                const [dvRows] = await sequelize.query(
+                    `SELECT DonGiaHienTai FROM dich_vu WHERE MaDichVu = :MaDichVu AND deleted = 0 LIMIT 1`,
+                    { replacements: { MaDichVu: maDichVu }, transaction: t }
+                );
+                if (dvRows && dvRows.length > 0) donGia = parseFloat(dvRows[0].DonGiaHienTai || 0);
+                else donGia = 0;
+            }
+
+            const thanhTien = parseFloat(soLuong) * parseFloat(donGia || 0);
+
+            await sequelize.query(
+                `INSERT INTO chi_tiet_hoa_don (MaHoaDon, MaDichVu, SoLuong, DonGiaLuuTru, ThanhTien)
+                 VALUES (:MaHoaDon, :MaDichVu, :SoLuong, :DonGiaLuuTru, :ThanhTien)`,
+                {
+                    replacements: { MaHoaDon, MaDichVu: maDichVu, SoLuong: soLuong, DonGiaLuuTru: donGia, ThanhTien: thanhTien },
+                    transaction: t
+                }
+            );
         }
 
         await t.commit();
@@ -233,7 +296,7 @@ export const payment = async (req, res) => {
 
         // 1. Kiểm tra hóa đơn tồn tại
         const [[invoice]] = await sequelize.query(
-            `SELECT TongTien, TrangThai FROM HOA_DON WHERE MaHoaDon = :MaHoaDon AND deleted = 0`,
+            `SELECT TongTien, TrangThai FROM hoa_don WHERE MaHoaDon = :MaHoaDon AND deleted = 0`,
             { replacements: { MaHoaDon }, transaction: t }
         );
 
@@ -250,7 +313,7 @@ export const payment = async (req, res) => {
         // 2. Lấy tổng số tiền đã thu trước đó
         const [[{ soTienDaThu }]] = await sequelize.query(
             `SELECT COALESCE(SUM(SoTienThu), 0) AS soTienDaThu 
-             FROM PHIEU_THU WHERE MaHoaDon = :MaHoaDon AND deleted = 0`,
+             FROM phieu_thu WHERE MaHoaDon = :MaHoaDon AND deleted = 0`,
             { replacements: { MaHoaDon }, transaction: t }
         );
 
@@ -268,7 +331,7 @@ export const payment = async (req, res) => {
 
         // 4. INSERT phiếu thu mới (MaPhieuThu là INT AUTO_INCREMENT)
         await sequelize.query(
-            `INSERT INTO PHIEU_THU (MaHoaDon, NgayThu, SoTienThu, HinhThuc, GhiChu, deleted)
+            `INSERT INTO phieu_thu (MaHoaDon, NgayThu, SoTienThu, HinhThuc, GhiChu, deleted)
              VALUES (:MaHoaDon, :NgayThu, :SoTienThu, :HinhThuc, :GhiChu, 0)`,
             {
                 replacements: { MaHoaDon, NgayThu, SoTienThu: thuLanNay, HinhThuc, GhiChu: GhiChu || null },
@@ -287,7 +350,7 @@ export const payment = async (req, res) => {
         }
 
         await sequelize.query(
-            `UPDATE HOA_DON SET TrangThai = :trangThaiMoi WHERE MaHoaDon = :MaHoaDon`,
+            `UPDATE hoa_don SET TrangThai = :trangThaiMoi WHERE MaHoaDon = :MaHoaDon`,
             { replacements: { trangThaiMoi, MaHoaDon }, transaction: t }
         );
 

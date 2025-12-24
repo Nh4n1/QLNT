@@ -2,9 +2,9 @@ import sequelize from "../config/database.js"
 
 //[GET] /services
 export const index = async (req, res) => {
-    const [services] = await sequelize.query(`
-       SELECT * FROM DICH_VU WHERE LoaiDichVu != 'TienPhong' AND deleted = 0 ORDER BY TenDichVu ASC
-    `);
+     const [services] = await sequelize.query(`
+         SELECT * FROM dich_vu WHERE LoaiDichVu != 'TienPhong' AND deleted = 0 ORDER BY TenDichVu ASC
+     `);
     res.render('pages/services/index', { 
         title: 'Services', 
         services,
@@ -26,7 +26,7 @@ export const create = async (req, res) => {
         const MaDichVu = `DV_${timestamp}`;
         
         await sequelize.query(
-            `INSERT INTO DICH_VU (MaDichVu, TenDichVu, DonGiaHienTai, DonViTinh, LoaiDichVu, deleted)
+            `INSERT INTO dich_vu (MaDichVu, TenDichVu, DonGiaHienTai, DonViTinh, LoaiDichVu, deleted)
              VALUES (:MaDichVu, :TenDichVu, :DonGiaHienTai, :DonViTinh, :LoaiDichVu, 0)`,
             {
                 replacements: {
@@ -56,7 +56,7 @@ export const update = async (req, res) => {
         const { TenDichVu, DonGiaHienTai, DonViTinh, LoaiDichVu } = req.body;
         
         await sequelize.query(
-            `UPDATE DICH_VU 
+            `UPDATE dich_vu 
              SET TenDichVu = :TenDichVu, 
                  DonGiaHienTai = :DonGiaHienTai, 
                  DonViTinh = :DonViTinh, 
@@ -90,7 +90,7 @@ export const remove = async (req, res) => {
         const { id } = req.params;
         
         await sequelize.query(
-            `UPDATE DICH_VU 
+            `UPDATE dich_vu 
              SET deleted = 1, deletedAt = NOW(), updatedAt = NOW()
              WHERE MaDichVu = :id`,
             {

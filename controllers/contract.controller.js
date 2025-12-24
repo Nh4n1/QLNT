@@ -1,34 +1,34 @@
 import sequelize from "../config/database.js";
 export const index = async(req, res) => {
   console.log("Fetching contracts...");
-  const [contracts] = await sequelize.query(`SELECT 
-    HD.MaHopDong,
-    HD.NgayBatDau,
-    HD.NgayKetThuc,
-    HD.GiaThueChot,
-    HD.TrangThai,
-    -- Lấy thông tin phòng
-    P.TenPhong,
-    P.MaNha, -- Để biết nhà nào nếu cần
-    -- Lấy thông tin người thuê
-    NT.HoTen AS TenNguoiThue,
-    NT.SDT AS SoDienThoai
-    FROM HOP_DONG HD
-    INNER JOIN PHONG_TRO P ON HD.MaPhong = P.MaPhong
-    INNER JOIN NGUOI_THUE NT ON HD.MaNguoiThue = NT.MaNguoiThue
-    WHERE HD.deleted = 0 -- Chỉ lấy dữ liệu chưa bị xóa mềm
-    ORDER BY HD.createdAt DESC; -- Sắp xếp hợp đồng mới nhất lên đầu`);
+    const [contracts] = await sequelize.query(`SELECT 
+        HD.MaHopDong,
+        HD.NgayBatDau,
+        HD.NgayKetThuc,
+        HD.GiaThueChot,
+        HD.TrangThai,
+        -- Lấy thông tin phòng
+        P.TenPhong,
+        P.MaNha, -- Để biết nhà nào nếu cần
+        -- Lấy thông tin người thuê
+        NT.HoTen AS TenNguoiThue,
+        NT.SDT AS SoDienThoai
+        FROM hop_dong HD
+        INNER JOIN phong_tro P ON HD.MaPhong = P.MaPhong
+        INNER JOIN nguoi_thue NT ON HD.MaNguoiThue = NT.MaNguoiThue
+        WHERE HD.deleted = 0 -- Chỉ lấy dữ liệu chưa bị xóa mềm
+        ORDER BY HD.createdAt DESC; -- Sắp xếp hợp đồng mới nhất lên đầu`);
 
-  const [rooms] = await sequelize.query(`SELECT 
+const [rooms] = await sequelize.query(`SELECT 
     P.MaPhong, 
     P.TenPhong, 
     P.GiaThueHienTai,
     P.SoNguoiToiDa
-FROM PHONG_TRO P
+FROM phong_tro P
 WHERE P.TrangThai = 'ConTrong'
 AND NOT EXISTS (
     SELECT 1 
-    FROM HOP_DONG HD 
+    FROM hop_dong HD 
     WHERE HD.MaPhong = P.MaPhong 
     AND HD.TrangThai = 'ConHieuLuc'
 );`);
@@ -38,11 +38,11 @@ SELECT
     NT.HoTen, 
     NT.CCCD, 
     NT.SDT
-FROM NGUOI_THUE NT
+FROM nguoi_thue NT
 WHERE NT.deleted = 0 
 AND NOT EXISTS (
     SELECT 1 
-    FROM HOP_DONG HD
+    FROM hop_dong HD
     WHERE HD.MaNguoiThue = NT.MaNguoiThue
     AND HD.deleted = 0
     AND HD.TrangThai = 'ConHieuLuc'
@@ -59,15 +59,32 @@ export const create = async (req, res) => {
     const data = req.body;
     const t = await sequelize.transaction();
     try {
-        const timestamp = Date.now().toString().slice(-5);
-        const MaHopDong = `HD_${timestamp}`;
+        // Tạo MaHopDong theo format HD + yyMM + 3 chữ số (ví dụ: HD251201)
+        const now = new Date();
+        const yy = String(now.getFullYear()).slice(-2);
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const prefix = `HD${yy}${mm}`;
+
+        // Lấy mã lớn nhất có tiền tố tương ứng
+        const [lastRows] = await sequelize.query(
+            `SELECT MaHopDong FROM hop_dong WHERE MaHopDong LIKE :like ORDER BY MaHopDong DESC LIMIT 1`,
+            { replacements: { like: `${prefix}%` } }
+        );
+        let nextNum = 1;
+        if (lastRows && lastRows.length > 0 && lastRows[0].MaHopDong) {
+            const last = lastRows[0].MaHopDong;
+            const suffix = last.slice(prefix.length);
+            const parsed = parseInt(suffix, 10);
+            if (!isNaN(parsed)) nextNum = parsed + 1;
+        }
+        const MaHopDong = prefix + String(nextNum).padStart(3, '0');
         const {
             MaPhong, MaNguoiThue, NgayBatDau, NgayKetThuc,
             TienCoc, GiaThueChot, SoNguoiO, services
         } = data;
         const NgayTaoHopDong = new Date();
         await sequelize.query(`
-            INSERT INTO HOP_DONG (
+            INSERT INTO hop_dong (
                 MaHopDong, MaPhong, MaNguoiThue, 
                 NgayBatDau, NgayKetThuc, 
                 NgayTaoHopDong, TienCoc, GiaThueChot, SoNguoiO,
@@ -86,18 +103,17 @@ export const create = async (req, res) => {
             transaction: t 
         });
         await sequelize.query(`
-            INSERT INTO CU_DAN (
+            INSERT INTO cu_dan (
                 MaHopDong, MaNguoiThue, VaiTro, 
-                NgayVaoO, DangKyTamTru
+                NgayVaoO
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?)
         `, {
             replacements: [
                 MaHopDong,    
                 MaNguoiThue,  
                 'DaiDien',     
-                NgayBatDau,   
-                0           
+                NgayBatDau    
             ],
             type: sequelize.QueryTypes.INSERT,
             transaction: t
@@ -110,7 +126,7 @@ export const create = async (req, res) => {
                 }
 
                 await sequelize.query(`
-                    INSERT INTO DANG_KY_DICH_VU (
+                    INSERT INTO dang_ky_dich_vu (
                         MaHopDong, MaDichVu, 
                         SoLuong, DonGiaChot, 
                         NgayDangKy, TrangThai
@@ -128,7 +144,7 @@ export const create = async (req, res) => {
             }
         }
         await sequelize.query(`
-            UPDATE PHONG_TRO 
+            UPDATE phong_tro 
             SET TrangThai = 'DaChoThue' 
             WHERE MaPhong = ?
         `, {

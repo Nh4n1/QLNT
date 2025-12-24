@@ -9,31 +9,31 @@ export const index = async (req, res) => {
         const year = parseInt(req.query.year) || now.getFullYear();
 
         // 1. Tổng doanh thu tháng (từ PHIEU_THU)
-        const [[{ tongDoanhThu }]] = await sequelize.query(`
-            SELECT COALESCE(SUM(SoTienThu), 0) AS tongDoanhThu
-            FROM PHIEU_THU
-            WHERE MONTH(NgayThu) = :month
-              AND YEAR(NgayThu) = :year
-              AND deleted = 0
-        `, { replacements: { month, year } });
+                const [[{ tongDoanhThu }]] = await sequelize.query(`
+                        SELECT COALESCE(SUM(SoTienThu), 0) AS tongDoanhThu
+                        FROM phieu_thu
+                        WHERE MONTH(NgayThu) = :month
+                            AND YEAR(NgayThu) = :year
+                            AND deleted = 0
+                `, { replacements: { month, year } });
 
         // 2. Số hóa đơn đã thu đủ trong tháng
-        const [[{ soHoaDonDaThu }]] = await sequelize.query(`
-            SELECT COUNT(*) AS soHoaDonDaThu
-            FROM HOA_DON
-            WHERE TrangThai = 'DaThanhToan'
-              AND MONTH(NgayLap) = :month
-              AND YEAR(NgayLap) = :year
-              AND deleted = 0
-        `, { replacements: { month, year } });
+                const [[{ soHoaDonDaThu }]] = await sequelize.query(`
+                        SELECT COUNT(*) AS soHoaDonDaThu
+                        FROM hoa_don
+                        WHERE TrangThai = 'DaThanhToan'
+                            AND MONTH(NgayLap) = :month
+                            AND YEAR(NgayLap) = :year
+                            AND deleted = 0
+                `, { replacements: { month, year } });
 
         // 3. Tổng số tiền còn nợ (tất cả hóa đơn chưa thanh toán đủ)
         const [[{ tongConNo }]] = await sequelize.query(`
             SELECT COALESCE(SUM(hd.TongTien - COALESCE(thu.SoTienDaThu, 0)), 0) AS tongConNo
-            FROM HOA_DON hd
+            FROM hoa_don hd
             LEFT JOIN (
                 SELECT MaHoaDon, SUM(SoTienThu) AS SoTienDaThu
-                FROM PHIEU_THU WHERE deleted = 0
+                FROM phieu_thu WHERE deleted = 0
                 GROUP BY MaHoaDon
             ) thu ON hd.MaHoaDon = thu.MaHoaDon
             WHERE hd.TrangThai != 'DaThanhToan' AND hd.deleted = 0
@@ -42,7 +42,7 @@ export const index = async (req, res) => {
         // 4. Số phòng đang cho thuê
         const [[{ soPhongChoThue }]] = await sequelize.query(`
             SELECT COUNT(*) AS soPhongChoThue
-            FROM PHONG_TRO
+            FROM phong_tro
             WHERE TrangThai = 'DaChoThue' AND deleted = 0
         `);
 
@@ -57,15 +57,15 @@ export const index = async (req, res) => {
                 hd.MaHoaDon,
                 phong.TenPhong,
                 nt.HoTen AS TenKhachThue
-            FROM PHIEU_THU pt
-            INNER JOIN HOA_DON hd ON pt.MaHoaDon = hd.MaHoaDon
-            INNER JOIN HOP_DONG hdong ON hd.MaHopDong = hdong.MaHopDong
-            INNER JOIN PHONG_TRO phong ON hdong.MaPhong = phong.MaPhong
-            INNER JOIN NGUOI_THUE nt ON hdong.MaNguoiThue = nt.MaNguoiThue
-            WHERE MONTH(pt.NgayThu) = :month
-              AND YEAR(pt.NgayThu) = :year
-              AND pt.deleted = 0
-            ORDER BY pt.NgayThu DESC, pt.MaPhieuThu DESC
+                        FROM phieu_thu pt
+                        INNER JOIN hoa_don hd ON pt.MaHoaDon = hd.MaHoaDon
+                        INNER JOIN hop_dong hdong ON hd.MaHopDong = hdong.MaHopDong
+                        INNER JOIN phong_tro phong ON hdong.MaPhong = phong.MaPhong
+                        INNER JOIN nguoi_thue nt ON hdong.MaNguoiThue = nt.MaNguoiThue
+                        WHERE MONTH(pt.NgayThu) = :month
+                            AND YEAR(pt.NgayThu) = :year
+                            AND pt.deleted = 0
+                        ORDER BY pt.NgayThu DESC, pt.MaPhieuThu DESC
         `, { replacements: { month, year } });
 
         // Tạo danh sách tháng để chọn

@@ -1,7 +1,7 @@
 import sequelize from "../config/database.js";
 
 export const index = async (req, res) => {
-    const [userList] = await sequelize.query('SELECT * FROM NGUOI_THUE WHERE deleted = 0');
+    const [userList] = await sequelize.query('SELECT * FROM nguoi_thue WHERE deleted = 0');
     const [roomListWithUsers] = await sequelize.query(`SELECT 
     pt.MaPhong,
     pt.TenPhong,
@@ -21,18 +21,18 @@ export const index = async (req, res) => {
     -- Trạng thái hợp đồng (để kiểm tra cho chắc)
     hd.TrangThai AS TrangThaiHD
 
-FROM PHONG_TRO pt
+FROM phong_tro pt
 -- 1. Join lấy tên Nhà (Optional)
-JOIN NHA_TRO ntr ON pt.MaNha = ntr.MaNha
+JOIN nha_tro ntr ON pt.MaNha = ntr.MaNha
 
 -- 2. Join lấy Hợp Đồng đang hiệu lực
-JOIN HOP_DONG hd ON pt.MaPhong = hd.MaPhong
+JOIN hop_dong hd ON pt.MaPhong = hd.MaPhong
 
 -- 3. Join lấy danh sách Cư Dân thuộc hợp đồng đó
-JOIN CU_DAN cd ON hd.MaHopDong = cd.MaHopDong
+JOIN cu_dan cd ON hd.MaHopDong = cd.MaHopDong
 
 -- 4. Join lấy thông tin cá nhân của Cư Dân
-JOIN NGUOI_THUE nt ON cd.MaNguoiThue = nt.MaNguoiThue
+JOIN nguoi_thue nt ON cd.MaNguoiThue = nt.MaNguoiThue
 
 WHERE 
     -- Điều kiện 1: Hợp đồng phải còn hiệu lực và chưa bị xóa
@@ -50,16 +50,16 @@ ORDER BY
     cd.VaiTro ASC;  `);
     
     // Lấy danh sách người thuê chưa là cư dân trong bất kỳ phòng nào
-    const [availableUsers] = await sequelize.query(`
-        SELECT nt.* 
-        FROM NGUOI_THUE nt
-        LEFT JOIN CU_DAN cd ON nt.MaNguoiThue = cd.MaNguoiThue
-          AND cd.deleted = FALSE
-          AND (cd.NgayRoiDi IS NULL OR cd.NgayRoiDi > CURRENT_DATE)
-        WHERE nt.deleted = FALSE
-          AND cd.MaNguoiThue IS NULL
-        ORDER BY nt.HoTen ASC
-    `);
+        const [availableUsers] = await sequelize.query(`
+                SELECT nt.* 
+                FROM nguoi_thue nt
+                LEFT JOIN cu_dan cd ON nt.MaNguoiThue = cd.MaNguoiThue
+                    AND cd.deleted = FALSE
+                    AND (cd.NgayRoiDi IS NULL OR cd.NgayRoiDi > CURRENT_DATE)
+                WHERE nt.deleted = FALSE
+                    AND cd.MaNguoiThue IS NULL
+                ORDER BY nt.HoTen ASC
+        `);
     
     console.log(userList)
     res.render('pages/users/index', { 
@@ -78,7 +78,7 @@ export const create = async (req, res) => {
     try {
         // Check if CCCD already exists
         const [existingUser] = await sequelize.query(
-            'SELECT * FROM NGUOI_THUE WHERE CCCD = ? AND deleted = 0',
+            'SELECT * FROM nguoi_thue WHERE CCCD = ? AND deleted = 0',
             { replacements: [CCCD] }
         );
         
@@ -89,7 +89,7 @@ export const create = async (req, res) => {
         
         // Insert new user
         await sequelize.query(
-            `INSERT INTO NGUOI_THUE (CCCD, HoTen, GioiTinh, NgaySinh, SDT, Email, DiaChi, deleted)
+            `INSERT INTO nguoi_thue (CCCD, HoTen, GioiTinh, NgaySinh, SDT, Email, DiaChi, deleted)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             {
                 replacements: [CCCD, HoTen, GioiTinh, NgaySinh, SDT, Email || null, DiaChi || null, 0]
@@ -118,7 +118,7 @@ export const addResident = async (req, res) => {
         
         // Check if person already is a resident in another active contract
         const [existingResident] = await sequelize.query(
-            `SELECT * FROM CU_DAN 
+            `SELECT * FROM cu_dan 
              WHERE MaNguoiThue = ? 
              AND deleted = 0 
              AND (NgayRoiDi IS NULL OR NgayRoiDi > CURRENT_DATE)`,
@@ -132,7 +132,7 @@ export const addResident = async (req, res) => {
         
         // Check if contract exists and is active
         const [contractCheck] = await sequelize.query(
-            `SELECT * FROM HOP_DONG 
+            `SELECT * FROM hop_dong 
              WHERE MaHopDong = ? 
              AND MaPhong = ?
              AND deleted = 0
@@ -147,7 +147,7 @@ export const addResident = async (req, res) => {
         
         // Insert new resident
         await sequelize.query(
-            `INSERT INTO CU_DAN (MaHopDong, MaNguoiThue, VaiTro, NgayVaoO, deleted)
+            `INSERT INTO cu_dan (MaHopDong, MaNguoiThue, VaiTro, NgayVaoO, deleted)
              VALUES (?, ?, ?, ?, ?)`,
             {
                 replacements: [MaHopDong, MaNguoiThue, VaiTro, NgayVaoO, 0]
@@ -156,7 +156,7 @@ export const addResident = async (req, res) => {
         
         // Get resident name for response
         const [resident] = await sequelize.query(
-            'SELECT HoTen FROM NGUOI_THUE WHERE MaNguoiThue = ?',
+            'SELECT HoTen FROM nguoi_thue WHERE MaNguoiThue = ?',
             { replacements: [MaNguoiThue] }
         );
         

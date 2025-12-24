@@ -70,7 +70,7 @@ block main
                                 th(style='width: 18%') Khách thuê
                                 th.text-right(style='width: 15%') Số tiền
                                 th(style='width: 12%') Hình thức
-                                th(style='width: 10%') Mã HĐ
+                                td(style='width: 10%') Hóa đơn
                                 th(style='width: 13%') Ghi chú
                         tbody
                             if phieuThuList && phieuThuList.length > 0
@@ -90,8 +90,8 @@ block main
                                             - const hinhThucClass = pt.HinhThuc === 'TienMat' ? 'badge-cash' : 'badge-transfer'
                                             - const hinhThucText = pt.HinhThuc === 'TienMat' ? 'Tiền mặt' : 'Chuyển khoản'
                                             span(class='payment-badge ' + hinhThucClass)= hinhThucText
-                                        td
-                                            a.invoice-link(href='/invoices/details/' + pt.MaHoaDon)= pt.MaHoaDon
+                                        td 
+                                            button.btn.btn-link.invoice-link(type='button', onclick=`window.open('/invoices/${pt.MaHoaDon}', '_blank')`) Xem
                                         td
                                             span.receipt-note= pt.GhiChu || '—'
                             else

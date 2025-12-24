@@ -15,12 +15,12 @@ export const index = async (req, res) => {
         HD.TienCoc,
         COALESCE(HD.GiaThueChot, P.GiaThueHienTai) AS GiaHienThi,
         HD.NgayKetThuc
-    FROM PHONG_TRO P
-    LEFT JOIN HOP_DONG HD 
+    FROM phong_tro P
+    LEFT JOIN hop_dong HD 
         ON P.MaPhong = HD.MaPhong 
         AND HD.TrangThai = 'ConHieuLuc' 
         AND HD.deleted = 0
-    LEFT JOIN NGUOI_THUE NT 
+    LEFT JOIN nguoi_thue NT 
         ON HD.MaNguoiThue = NT.MaNguoiThue 
         AND NT.deleted = 0
     WHERE P.deleted = 0
